@@ -3,6 +3,7 @@
 //
 
 #include "XBeeDevice.h"
+#include <iostream>
 
 #define DEBUG true
 
@@ -315,10 +316,12 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
 void XBeeDevice::receive()
 {
+    std::cout << "Reading";
     serialRead(receiveFrame, 1);
 
     if (receiveFrame[0] != XBee::StartDelimiter)
     {
+        std::cout << "Wrong start delimiter: " << std::hex << receiveFrame[0];
         return;
     }
 

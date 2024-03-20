@@ -51,7 +51,7 @@ private:
 
     virtual void serialRead(const char *buffer, size_t length_bytes) = 0;
 
-    virtual void handleReceivePacket(XBee::ReceivePacket::Struct *frame);
+    virtual inline void handleReceivePacket(XBee::ReceivePacket::Struct *frame);
 
     void parseReceivePacket(const uint8_t *frame, uint8_t length);
 
