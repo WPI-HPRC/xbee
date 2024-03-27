@@ -9,8 +9,6 @@
 #ifndef XBEE_BACKEND_CPP_XBEEUTILITY_H
 #define XBEE_BACKEND_CPP_XBEEUTILITY_H
 
-#endif //XBEE_BACKEND_CPP_XBEEUTILITY_H
-
 /*
  * XBee namespace with constants for utility.
  *
@@ -153,3 +151,4 @@ namespace XBee
     namespace NodeDiscoveryResponseLocal = AtCommandResponseLocal::NodeDiscovery;
      */
 }
+#endif //XBEE_BACKEND_CPP_XBEEUTILITY_H
