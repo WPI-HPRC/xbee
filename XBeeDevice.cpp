@@ -29,7 +29,7 @@ uint8_t getFrameType(const uint8_t *packet)
 
 XBeeDevice::XBeeDevice()
 {
-    receiveFrame = new char[XBee::MaxPacketBytes];
+    receiveFrame = new uint8_t[XBee::MaxPacketBytes];
 
     transmitRequestFrame = new uint8_t[XBee::MaxFrameBytes];
 
@@ -352,6 +352,8 @@ void XBeeDevice::receive()
         return;
     }
 
+//    std::cout << "Right start delimiter" << std::endl;
+
     // Read the length of the frame (16 bits = 2 bytes) and place it directly after the start delimiter in our receive memory
     serialRead(&receiveFrame[1], 2);
 
@@ -375,7 +377,7 @@ void XBeeDevice::receive()
     // The second of the two length bytes holds the real length of the frame.
     serialRead(&receiveFrame[3], length + 1);
 
-    handleFrame((const uint8_t *) receiveFrame);
+    handleFrame(receiveFrame);
     receiveFrame[0] = 0x00;
 }
 

@@ -49,7 +49,7 @@ private:
 
     virtual void serialWrite(const char *data, size_t length_bytes) = 0;
 
-    virtual void serialRead(char *buffer, size_t length_bytes) = 0;
+    virtual void serialRead(uint8_t *buffer, size_t length_bytes) = 0;
 
     virtual void packetRead() = 0;
 
@@ -73,7 +73,7 @@ private:
 
     XBee::ReceivePacket::Struct *receivePacketStruct = new XBee::ReceivePacket::Struct;
 
-    char *receiveFrame;
+    uint8_t *receiveFrame;
     char *nodeID;
     SerialCircularBuffer *buffer;
 };
