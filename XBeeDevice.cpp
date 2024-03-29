@@ -4,11 +4,8 @@
 
 #include "XBeeDevice.h"
 #include <iostream>
-#include <chrono>
 
 #define DEBUG true
-
-int numReceived = 0;
 
 uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
@@ -86,7 +83,6 @@ void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const u
     atCommandFrame[index++] = contentLength_bytes & 0xFF;
 
     atCommandFrame[index++] = frameType; // Local AT Command Request
-//    qDebug() << "Current Frame ID: " << currentFrameID;
     atCommandFrame[index++] = currentFrameID++; // Frame ID
 
     atCommandFrame[index++] = (command >> 8) & 0xFF;
@@ -156,14 +152,6 @@ void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
     serialWrite((const char *) frame, size_bytes);
 }
 
-/*
-void XBeeDevice::handleReceivePacket(XBee::ReceivePacket::Struct *frame)
-{
-    // For now, assume that the frame is the rocket frame and don't do any other checking
-    return; // Do nothing for now
-}
- */
-
 void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
 {
     uint8_t payloadLength = length_bytes -
@@ -177,10 +165,6 @@ void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
     {
         addr = addr | (frame[index++] << 8 * i);
     }
-//    std::cout << "Addr: " << std::hex << addr << std::endl;
-#if DEBUG
-
-#endif
 
     receivePacketStruct->dataLength_bytes = payloadLength;
     receivePacketStruct->senderAddress = addr;
@@ -248,7 +232,6 @@ void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t lengt
 void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
 {
     uint8_t commandStatus = frame[XBee::AtCommandResponse::BytesBeforeCommandStatus];
-//    std::cout << "Status: " << (int) commandStatus << std::endl;
     if (commandStatus != 0x00)
     {
         std::string commandString;
@@ -273,14 +256,10 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
 
     uint16_t command = getAtCommand(frame);
 
-    std::cout << (int) command;
-
     if (!atParamConfirmationsBeingWaitedOn.empty())
     {
-        std::cout << "Good" << std::endl;
         if (atParamConfirmationsBeingWaitedOn.front() == command)
         {
-            std::cout << "OK" << std::endl;
             atParamConfirmationsBeingWaitedOn.pop();
             return;
         }
@@ -316,14 +295,8 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
                   << std::endl;
         return false;
     }
-//    std::cout << "Good frame "
-//              << std::dec << numReceived
-//              << std::endl;
-//    numReceived++;
 
     uint8_t frameType = frame[index++];
-
-//    std::cout << "Frame Type: " << std::hex << static_cast<int>(frameType) << std::endl;
 
     switch (frameType)
     {
@@ -342,71 +315,44 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
     return true;
 }
 
-void XBeeDevice::receive()
+bool XBeeDevice::receive()
 {
     serialRead(receiveFrame, 1);
 
     if (receiveFrame[0] != XBee::StartDelimiter)
     {
-//        std::cout << "Wrong start delimiter: " << std::hex << (int) receiveFrame[0] << std::endl;
-        return;
+        return false;
     }
-
-//    std::cout << "Right start delimiter" << std::endl;
 
     // Read the length of the frame (16 bits = 2 bytes) and place it directly after the start delimiter in our receive memory
     serialRead(&receiveFrame[1], 2);
 
     if (receiveFrame[1] != 0x00)
     {
-//        std::cout << "??" << std::endl;
-        return;
+        return false;
     }
 
-//    std::cout << "Frame " << std::endl;
-
-//    std::cout << "Reading length"
-
-//    serialRead(&receiveFrame[2], 1);
-
     uint8_t length = receiveFrame[2];
-
-//    std::cout << "Length: " << (int) length << std::endl;
 
     // Read the rest of the frame. The length represents the number of bytes between the length and the checksum.
     // The second of the two length bytes holds the real length of the frame.
     serialRead(&receiveFrame[3], length + 1);
 
     handleFrame(receiveFrame);
-    receiveFrame[0] = 0x00;
+
+    return true;
 }
 
 void XBeeDevice::doCycle()
 {
-//    std::cout << "Doing cycle" << std::endl;
     // First, read frames from serial
-    receive();
-
-    // Next, handle the frames in our buffer
-    /*
-    for (int i = 0; i < BUFFER_LENGTH; i++)
+    bool receivedPacket = false;
+    do
     {
-        uint8_t *frame = circularBufferGetValueAtIndex(buffer, -i - 1); // Go backwards
+        receivedPacket = receive();
+    } while (receivedPacket);
 
-        if (frame[0] == XBee::StartDelimiter)
-        {
-            handleFrame(frame);
-            std::cout << "Handling frame" << std::endl;
-            frame[0] = 0x00; // So we know the frame has been read
-        }
-        else
-        {
-            break; // Assume all packets have been read if we reach a frame that has already been read
-        }
-    }
-     */
-
-    // Finally, send out any frames that need to be sent
+    // Next, send out any frames that need to be sent
 
     while (true)
     {

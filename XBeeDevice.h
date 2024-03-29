@@ -40,7 +40,7 @@ public:
 
     void write();
 
-    void receive();
+    bool receive();
 
     void doCycle();
 
