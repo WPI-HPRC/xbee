@@ -2,13 +2,13 @@
 // Created by William Scheirey on 3/12/24.
 //
 
-#ifndef XBEE_BACKEND_CPP_XBEEDEVICE_H
-#define XBEE_BACKEND_CPP_XBEEDEVICE_H
+#ifndef HPRC_XBEEDEVICE_H
+#define HPRC_XBEEDEVICE_H
 
 #include <queue>
 #include "../Utility.h"
 #include "XBeeUtility.h"
-#include "../CircularBuffer.hpp"
+#include "CircularBuffer.hpp"
 
 #define BUFFER_LENGTH 2048
 
@@ -75,8 +75,8 @@ private:
 
     uint8_t *receiveFrame;
     char *nodeID;
-    SerialCircularBuffer *buffer;
+    CircularBuffer *buffer;
 };
 
 
-#endif //XBEE_BACKEND_CPP_XBEEDEVICE_H
+#endif //HPRC_XBEEDEVICE_H

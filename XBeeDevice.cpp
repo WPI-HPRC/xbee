@@ -37,7 +37,7 @@ XBeeDevice::XBeeDevice()
 
     nodeID = new char[20];
 
-    buffer = serialCircularBufferCreate(BUFFER_LENGTH, XBee::MaxFrameBytes);
+    buffer = circularBufferCreate(BUFFER_LENGTH, XBee::MaxFrameBytes);
 
     currentFrameID = 1;
 }
@@ -391,7 +391,7 @@ void XBeeDevice::doCycle()
     /*
     for (int i = 0; i < BUFFER_LENGTH; i++)
     {
-        uint8_t *frame = serialCircularBufferGetValueAtIndex(buffer, -i - 1); // Go backwards
+        uint8_t *frame = circularBufferGetValueAtIndex(buffer, -i - 1); // Go backwards
 
         if (frame[0] == XBee::StartDelimiter)
         {
