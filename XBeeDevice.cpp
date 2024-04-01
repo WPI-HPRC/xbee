@@ -173,6 +173,28 @@ void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
     handleReceivePacket(receivePacketStruct);
 }
 
+void XBeeDevice::parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes)
+{
+    uint8_t payloadLength = length_bytes -
+                            XBee::ReceivePacket64Bit::PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
+
+    uint64_t addr = 0;
+
+    uint8_t index = XBee::ReceivePacket64Bit::BytesBeforeAddress;
+
+    for (int i = 0; i < 8; i++)
+    {
+        addr = addr | (frame[index++] << 8 * i);
+    }
+
+    receivePacket64BitStruct->dataLength_bytes = payloadLength;
+    receivePacket64BitStruct->senderAddress = addr;
+    receivePacket64BitStruct->data = &frame[XBee::ReceivePacket64Bit::BytesBeforePayload];
+    receivePacket64BitStruct->negativeRssi = frame[XBee::ReceivePacket64Bit::BytesBeforeRssi];
+
+    handleReceivePacket(receivePacket64BitStruct);
+}
+
 uint16_t XBeeDevice::getAtCommand(const uint8_t *frame)
 {
     return frame[XBee::AtCommandResponse::BytesBeforeCommand] << 8 |

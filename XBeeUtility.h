@@ -37,8 +37,9 @@ namespace XBee
 
             AtCommandResponse = 0x88,
             ModemStatus = 0x8A,
-            TransmitStatus = 0x8B,
+            TransmitStatus = 0x89,
             ReceivePacket = 0x90,
+            ReceivePacket64Bit = 0x80,
             ExplicitRxIndicator = 0x91,
             IoDataSampleRateRxIndicator = 0x92,
             XBeeSensorReadIndicator = 0x94,
@@ -120,6 +121,24 @@ namespace XBee
         struct Struct
         {
             uint8_t dataLength_bytes;
+            uint64_t senderAddress;
+            const uint8_t *data;
+        };
+    }
+
+    namespace ReceivePacket64Bit
+    {
+        const uint8_t PacketBytes = 11; // +1 for frame type, +8 for sender address, +1 for rssi, +1 for receive options
+        const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+        const uint8_t BytesBeforePacket = 4;
+        const uint8_t BytesBeforeAddress = 4;
+        const uint8_t BytesBeforeRssi = 12;
+        const uint8_t BytesBeforePayload = 14;
+
+        struct Struct
+        {
+            uint8_t dataLength_bytes;
+            uint8_t negativeRssi;
             uint64_t senderAddress;
             const uint8_t *data;
         };

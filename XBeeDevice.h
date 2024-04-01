@@ -55,7 +55,11 @@ private:
 
     virtual void handleReceivePacket(XBee::ReceivePacket::Struct *frame) = 0;
 
+    virtual void handleReceivePacket64Bit(XBee::ReceivePacket64Bit::Struct *frame) = 0;
+
     void parseReceivePacket(const uint8_t *frame, uint8_t length);
+
+    void parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes);
 
     bool handleFrame(const uint8_t *frame);
 
@@ -72,6 +76,7 @@ private:
     std::queue<uint16_t> atParamConfirmationsBeingWaitedOn;
 
     XBee::ReceivePacket::Struct *receivePacketStruct = new XBee::ReceivePacket::Struct;
+    XBee::ReceivePacket64Bit::Struct *receivePacket64BitStruct = new XBee::ReceivePacket64Bit::Struct;
 
     uint8_t *receiveFrame;
     char *nodeID;
