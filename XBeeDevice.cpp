@@ -7,6 +7,8 @@
 
 #define DEBUG true
 
+int goodFrameNumber = 0;
+
 uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
     uint8_t sum = 0;
@@ -35,6 +37,8 @@ XBeeDevice::XBeeDevice()
     nodeID = new char[20];
 
     buffer = circularBufferCreate(BUFFER_LENGTH, XBee::MaxFrameBytes);
+
+    atParamConfirmationsBeingWaitedOn = circularQueueCreate<uint16_t>(256);
 
     currentFrameID = 1;
 }
@@ -278,11 +282,13 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
 
     uint16_t command = getAtCommand(frame);
 
-    if (!atParamConfirmationsBeingWaitedOn.empty())
+    if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn))
     {
-        if (atParamConfirmationsBeingWaitedOn.front() == command)
+        uint16_t commandBeingWaitedOn = 0;
+        circularQueuePeek(atParamConfirmationsBeingWaitedOn, &commandBeingWaitedOn, 1);
+        if (commandBeingWaitedOn == command)
         {
-            atParamConfirmationsBeingWaitedOn.pop();
+            circularQueuePop(atParamConfirmationsBeingWaitedOn, &commandBeingWaitedOn, 1);
             return;
         }
     }
@@ -318,6 +324,8 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
         return false;
     }
 
+    std::cout << "Good frame #" << std::dec << goodFrameNumber++ << std::endl;
+
     uint8_t frameType = frame[index++];
 
     switch (frameType)
@@ -326,12 +334,16 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
             parseReceivePacket(frame, lengthHigh);
             break;
 
+        case XBee::FrameType::ReceivePacket64Bit:
+            parseReceivePacket64Bit(frame, lengthHigh);
+            break;
+
         case XBee::FrameType::AtCommandResponse:
             handleAtCommandResponse(frame, lengthHigh);
             break;
 
         default:
-            break;
+            std::cout << "Unrecognized frame type: " << std::hex << (int) (frameType & 0xFF) << std::endl;
 
     }
     return true;
@@ -378,7 +390,7 @@ void XBeeDevice::doCycle()
 
     while (true)
     {
-        if (!atParamConfirmationsBeingWaitedOn.empty() || transmitFrameQueue.empty())
+        if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn) || transmitFrameQueue.empty())
         {
             break;
         }
@@ -386,7 +398,8 @@ void XBeeDevice::doCycle()
         uint8_t frameType = getFrameType(frame->frame);
         if (frameType == XBee::FrameType::AtCommandQueueParameterValue || frameType == XBee::FrameType::AtCommand)
         {
-            atParamConfirmationsBeingWaitedOn.push(getAtCommand(frame->frame));
+            circularQueuePush(atParamConfirmationsBeingWaitedOn, getAtCommand(frame->frame));
+//            atParamConfirmationsBeingWaitedOn.a(getAtCommand(frame->frame));
         }
         serialWrite((const char *) frame->frame, frame->length_bytes);
         transmitFrameQueue.pop();

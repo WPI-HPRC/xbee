@@ -26,46 +26,81 @@ inline CircularQueue<T> *circularQueueCreate(unsigned int length)
 
     buffer->data = (T *) malloc(length * buffer->dataSize_bytes);
 
-    buffer->dataPtr = &buffer->data[0];
+    buffer->dataPtr = buffer->data;
     buffer->readPtr = buffer->dataPtr;
 
     return buffer;
 }
 
 template<typename T>
-inline void circularQueueRead(CircularQueue<T> *queue, T *outBuffer, unsigned int length)
+inline void
+circularQueuePeek(CircularQueue<T> *queue, T *outBuffer, unsigned int length, unsigned int *bytes_overflowed = nullptr)
 {
     unsigned int length_bytes = length * queue->dataSize_bytes;
 
-    if (queue->data + queue->length - queue->readPtr > length_bytes)
+    if (queue->data + queue->length - queue->readPtr >= length_bytes)
     {
-        memcpy(outBuffer, queue->readPtr, length_bytes);
+        // No wrap-around, data is contiguous
+        memcpy(outBuffer, queue->readPtr, length_bytes);\
+        if (bytes_overflowed != nullptr)
+        {
+            *bytes_overflowed = 0;
+        }
+    }
+    else
+    {
+        // Wrap-around, data spans the end of the buffer
+        unsigned int bytes_until_wrap = (queue->data + queue->length) - queue->readPtr;
+        unsigned int bytes_after_wrap = length_bytes - bytes_until_wrap;
+
+        memcpy(outBuffer, queue->readPtr, bytes_until_wrap);
+        memcpy(outBuffer + bytes_until_wrap, queue->data, bytes_after_wrap);
+
+        if (bytes_overflowed != nullptr)
+        {
+            *bytes_overflowed = bytes_after_wrap;
+        }
+    }
+}
+
+template<typename T>
+inline void circularQueuePop(CircularQueue<T> *queue, T *outBuffer, unsigned int length)
+{
+    unsigned int length_bytes = length * queue->dataSize_bytes;
+    unsigned int bytes_overflowed;
+    circularQueuePeek(queue, outBuffer, length, &bytes_overflowed);
+
+    if (bytes_overflowed == 0)
+    {
+        memset(queue->readPtr, 0, length_bytes);
         queue->readPtr += length_bytes;
     }
     else
     {
-        unsigned int bytes_transferred = queue->data + queue->length - queue->readPtr;
-
-        memcpy(outBuffer, queue->readPtr, bytes_transferred);
-        memcpy(&outBuffer[bytes_transferred], queue->data, length_bytes - bytes_transferred);
-
-        queue->readPtr = &queue->data[bytes_transferred];
+        memset(queue->readPtr, 0, length_bytes - bytes_overflowed);
+        memset(queue->data, 0, bytes_overflowed);
+        queue->readPtr = queue->data + bytes_overflowed;
     }
 }
 
-
 template<typename T>
-inline void circularQueueAdd(CircularQueue<T> *buffer, T data)
+inline void circularQueuePush(CircularQueue<T> *queue, T data)
 {
-    *buffer->dataPtr = data;
-    if (buffer->dataPtr == &buffer->data[buffer->length - 1])
+    *queue->dataPtr = data;
+    if (queue->dataPtr == &queue->data[queue->length - 1])
     {
-        buffer->dataPtr = &buffer->data[0];
+        queue->dataPtr = queue->data;
     }
     else
     {
-        buffer->dataPtr++;
+        queue->dataPtr++;
     }
+}
+
+template<typename T>
+inline bool isCircularQueueEmpty(CircularQueue<T> *queue)
+{
+    return queue->readPtr == queue->dataPtr;
 }
 
 #endif //HPRC_CIRCULARQUEUE_HPP

@@ -9,6 +9,7 @@
 #include "../Utility.h"
 #include "XBeeUtility.h"
 #include "CircularBuffer.hpp"
+#include "circularQueue.hpp"
 
 #define BUFFER_LENGTH 2048
 
@@ -73,7 +74,10 @@ private:
     uint8_t currentFrameID;
 
     std::queue<XBee::BasicFrame *> transmitFrameQueue;
-    std::queue<uint16_t> atParamConfirmationsBeingWaitedOn;
+//    std::queue<uint16_t> atParamConfirmationsBeingWaitedOn;
+
+    CircularQueue<uint16_t> *atParamConfirmationsBeingWaitedOn;
+
 
     XBee::ReceivePacket::Struct *receivePacketStruct = new XBee::ReceivePacket::Struct;
     XBee::ReceivePacket64Bit::Struct *receivePacket64BitStruct = new XBee::ReceivePacket64Bit::Struct;
