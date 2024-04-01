@@ -192,7 +192,7 @@ void XBeeDevice::parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_by
     receivePacket64BitStruct->data = &frame[XBee::ReceivePacket64Bit::BytesBeforePayload];
     receivePacket64BitStruct->negativeRssi = frame[XBee::ReceivePacket64Bit::BytesBeforeRssi];
 
-    handleReceivePacket(receivePacket64BitStruct);
+    handleReceivePacket64Bit(receivePacket64BitStruct);
 }
 
 uint16_t XBeeDevice::getAtCommand(const uint8_t *frame)
