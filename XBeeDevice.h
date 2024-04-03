@@ -68,6 +68,8 @@ private:
 
     bool handleFrame(const uint8_t *frame);
 
+    void handleAtCommandResponseGeneric(const uint8_t *frame, uint8_t length_bytes);
+
     void handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
     void handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t length_bytes);
