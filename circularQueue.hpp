@@ -64,6 +64,23 @@ circularQueuePeek(CircularQueue<T> *queue, T *outBuffer, unsigned int length, un
 }
 
 template<typename T>
+inline void circularQueueRead(CircularQueue<T> *queue, T *outBuffer, unsigned int length)
+{
+    unsigned int length_bytes = length * queue->dataSize_bytes;
+    unsigned int bytes_overflowed;
+    circularQueuePeek(queue, outBuffer, length, &bytes_overflowed);
+
+    if (bytes_overflowed == 0)
+    {
+        queue->readPtr += length_bytes;
+    }
+    else
+    {
+        queue->readPtr = queue->data + bytes_overflowed;
+    }
+}
+
+template<typename T>
 inline void circularQueuePop(CircularQueue<T> *queue, T *outBuffer, unsigned int length)
 {
     unsigned int length_bytes = length * queue->dataSize_bytes;
