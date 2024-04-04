@@ -268,7 +268,7 @@ void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_b
             break;
     }
 
-    log("Received response for %04x: ", (int) (command & 0xFFFF));
+    log("AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
     for (uint8_t i = 0; i < length_bytes - XBee::AtCommandResponse::PacketBytes; i++)
     {
         log("%02x ", (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
@@ -296,7 +296,7 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
 
             if (commandStatus != 0x00)
             {
-                log("AT command response for %04x: ", (int) (command & 0xFFFF));
+                log("AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
                 switch (commandStatus)
                 {
                     case XBee::AtCommand::Error:
@@ -316,7 +316,7 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
             }
             else if (length_bytes == XBee::AtCommandResponse::PacketBytes)
             {
-                log("AT command response for %04x: OK\n", (int) (command & 0xFFFF));
+                log("AT command response for %c%c: OK\n", (command & 0xFF00) >> 8, command & 0x00FF);
                 return;
             }
         }

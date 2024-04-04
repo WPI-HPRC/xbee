@@ -61,7 +61,24 @@ namespace XBee
             NodeDiscoveryOptions = AsciiToUint16('N', 'O'),
             NodeDiscoveryBackoff = AsciiToUint16('N', 'T'),
             Write = AsciiToUint16('W', 'R'),
-            ApplyChanges = AsciiToUint16('A', 'C')
+            ApplyChanges = AsciiToUint16('A', 'C'),
+            SerialNumberHigh = AsciiToUint16('S', 'H'),
+            SerialNumberLow = AsciiToUint16('S', 'L'),
+            NodeIdentifier = AsciiToUint16('N', 'I'),
+            PowerLevel = AsciiToUint16('P', 'L'),
+            PowerMode = AsciiToUint16('P', 'M'),
+            PeakPower = AsciiToUint16('P', 'P'),
+            SupplyVoltage = AsciiToUint16('%', 'V'), // Read user manual for scaling
+            VoltageSupplyMonitoring = AsciiToUint16('V', '+'),
+            Temperature = AsciiToUint16('T', 'P'),
+            FirmwareVersion = AsciiToUint16('V', 'R'),
+            HardwareVersion = AsciiToUint16('H', 'V'),
+            AvailableFrequencies = AsciiToUint16('A', 'F'),
+            ChannelMask = AsciiToUint16('C', 'M'),
+            MinimumFrequencies = AsciiToUint16('M', 'F'),
+            RFDataRate = AsciiToUint16('B', 'R'),
+            EnergyDetect = AsciiToUint16('E', 'D'),
+            UnicastAttemptedCount = AsciiToUint16('U', 'A'),
         };
         enum CommandStatus
         {
