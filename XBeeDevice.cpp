@@ -268,14 +268,13 @@ void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_b
             break;
     }
 
-    std::cout << "Received response for " << std::hex << (int) (command & 0xFFFF) << ": ";
+    log("Received response for %04x: ", (int) (command & 0xFFFF));
     for (uint8_t i = 0; i < length_bytes - XBee::AtCommandResponse::PacketBytes; i++)
     {
-        std::cout << std::dec << std::hex
-                  << (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF) << " ";
+        log("%02x ", (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
     }
 
-    std::cout << std::endl;
+    log("\n");
 }
 
 void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
@@ -283,16 +282,6 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
     uint8_t commandStatus = frame[XBee::AtCommandResponse::BytesBeforeCommandStatus];
 
     uint16_t command = getAtCommand(frame);
-
-    std::cout << "RECEIVED RESPONSE ";
-
-    for (uint8_t i = 0; i < length_bytes + XBee::FrameBytes; i++)
-    {
-        std::cout << std::dec << std::hex
-                  << (int) (frame[i] & 0xFF) << " ";
-    }
-
-    std::cout << std::endl;
 
     bool paramWasBeingWaitedOn = false;
 
@@ -307,24 +296,27 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
 
             if (commandStatus != 0x00)
             {
-                std::string commandString;
+                log("AT command response for %04x: ", (int) (command & 0xFFFF));
                 switch (commandStatus)
                 {
                     case XBee::AtCommand::Error:
-                        commandString = "Error in command";
+                        log("Error in command\n");
                         break;
                     case XBee::AtCommand::InvalidCommand:
-                        commandString = "Invalid command";
+                        log("Invalid command\n");
                         break;
                     case XBee::AtCommand::InvalidParameter:
-                        commandString = "Invalid parameter";
+                        log("Invalid parameter\n");
                         break;
                     default:
-                        commandString = "You have broken physics";
+                        log("You have broken physics\n");
                         break;
                 }
-                std::cout << "AT Command response for " << (int) (command & 0xFFFF) << ": " << commandString.c_str()
-                          << std::endl;
+                return;
+            }
+            else if (length_bytes == XBee::AtCommandResponse::PacketBytes)
+            {
+                log("AT command response for %04x: OK\n", (int) (command & 0xFFFF));
                 return;
             }
         }
@@ -347,9 +339,8 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
     if (calculatedChecksum != receivedChecksum)
     {
-        std::cout << "Checksum mismatch. Calculated: " << std::hex << (int) calculatedChecksum << ", Received: "
-                  << std::hex << (int) receivedChecksum
-                  << std::endl;
+        log("Checksum mismatch. Calculated: %02x, received: %02x\n", (int) (calculatedChecksum & 0xFF),
+            (int) (receivedChecksum & 0xFF));
         incorrectChecksum(calculatedChecksum, receivedChecksum);
         return false;
     }
@@ -371,7 +362,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
             break;
 
         default:
-            std::cout << "Unrecognized frame type: " << std::hex << (int) (frameType & 0xFF) << std::endl;
+            log("Unrecognized frame type: %02x\n", (int) (frameType & 0xFF));
 
     }
     return true;

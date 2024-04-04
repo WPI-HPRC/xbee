@@ -20,6 +20,8 @@ public:
 
     virtual void start() = 0;
 
+    virtual void log(const char *format, ...) = 0;
+
     void sendFrame(uint8_t *frame, size_t size_bytes);
 
     void sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes);
@@ -80,8 +82,6 @@ private:
     uint8_t currentFrameID;
 
     CircularQueue<XBee::BasicFrame> *transmitFrameQueue;
-//    std::queue<XBee::BasicFrame *> transmitFrameQueue;
-//    std::queue<uint16_t> atParamConfirmationsBeingWaitedOn;
 
     XBee::BasicFrame tempFrame;
 
