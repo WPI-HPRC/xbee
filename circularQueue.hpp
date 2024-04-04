@@ -38,7 +38,7 @@ circularQueuePeek(CircularQueue<T> *queue, T *outBuffer, unsigned int length, un
 {
     unsigned int length_bytes = length * queue->dataSize_bytes;
 
-    if (queue->data + queue->length - queue->readPtr >= length_bytes)
+    if (queue->data + queue->length * queue->dataSize_bytes - queue->readPtr >= length_bytes)
     {
         // No wrap-around, data is contiguous
         memcpy(outBuffer, queue->readPtr, length_bytes);\
@@ -50,7 +50,7 @@ circularQueuePeek(CircularQueue<T> *queue, T *outBuffer, unsigned int length, un
     else
     {
         // Wrap-around, data spans the end of the buffer
-        unsigned int bytes_until_wrap = (queue->data + queue->length) - queue->readPtr;
+        unsigned int bytes_until_wrap = (queue->data + queue->length * queue->dataSize_bytes) - queue->readPtr;
         unsigned int bytes_after_wrap = length_bytes - bytes_until_wrap;
 
         memcpy(outBuffer, queue->readPtr, bytes_until_wrap);
@@ -90,7 +90,7 @@ inline void circularQueuePop(CircularQueue<T> *queue, T *outBuffer, unsigned int
     if (bytes_overflowed == 0)
     {
         memset(queue->readPtr, 0, length_bytes);
-        queue->readPtr += length_bytes;
+        queue->readPtr += length;
     }
     else
     {
@@ -100,10 +100,12 @@ inline void circularQueuePop(CircularQueue<T> *queue, T *outBuffer, unsigned int
     }
 }
 
+
 template<typename T>
-inline void circularQueuePush(CircularQueue<T> *queue, T data)
+inline void circularQueuePush(CircularQueue<T> *queue, T data, unsigned int length_bytes)
 {
-    *queue->dataPtr = data;
+    memcpy(queue->dataPtr, &data, length_bytes);
+//    *queue->dataPtr = data;
     if (queue->dataPtr == &queue->data[queue->length - 1])
     {
         queue->dataPtr = queue->data;
@@ -112,6 +114,12 @@ inline void circularQueuePush(CircularQueue<T> *queue, T data)
     {
         queue->dataPtr++;
     }
+}
+
+template<typename T>
+inline void circularQueuePush(CircularQueue<T> *queue, T data)
+{
+    circularQueuePush(queue, data, sizeof(T));
 }
 
 template<typename T>
