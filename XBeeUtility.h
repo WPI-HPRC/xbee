@@ -72,16 +72,17 @@ namespace XBee
         };
     }
 
-
-    struct BasicFrame
-    {
-        size_t length_bytes;
-        uint8_t *frame;
-    };
-
     const uint8_t MaxPacketBytes = 255;
     const uint8_t FrameBytes = 4; // +1 for start delimiter, +2 for length, +1 for checksum
     const uint16_t MaxFrameBytes = MaxPacketBytes + FrameBytes;
+
+#pragma pack(push, 1)
+    struct BasicFrame
+    {
+        size_t length_bytes;
+        uint8_t frame[MaxPacketBytes];
+    };
+#pragma pack(pop)
 
     // ------------- TRANSMIT -------------
     namespace AtCommandTransmit

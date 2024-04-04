@@ -40,12 +40,8 @@ XBeeDevice::XBeeDevice()
 
     atParamConfirmationsBeingWaitedOn = circularQueueCreate<uint16_t>(256);
 
-//    transmitFrameQueue = circularQueueCreate<XBee::BasicFrame>(16);
+    transmitFrameQueue = circularQueueCreate<XBee::BasicFrame>(16);
 
-    for (int i = 0; i < 16; i++)
-    {
-
-    }
 
     currentFrameID = 1;
 }
@@ -86,7 +82,6 @@ void XBeeDevice::queueAtCommandLocal(uint16_t command, const uint8_t *commandDat
 void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const uint8_t *commandData,
                                     size_t commandDataSize_bytes)
 {
-    std::cout << "Send at command local" << std::endl;
     size_t index = 1;
     size_t contentLength_bytes = XBee::AtCommandTransmit::PacketBytes + commandDataSize_bytes;
 
@@ -104,7 +99,7 @@ void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const u
         memcpy(&atCommandFrame[index], commandData, commandDataSize_bytes);
     }
 
-    circularQueuePush(atParamConfirmationsBeingWaitedOn, command);
+//    circularQueuePush(atParamConfirmationsBeingWaitedOn, command);
     sendFrame(atCommandFrame, commandDataSize_bytes + XBee::AtCommandTransmit::FrameBytes);
 }
 
@@ -151,9 +146,14 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
 void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
 {
     frame[0] = 0x7E; // Start delimiter;
-    frame[size_bytes - 1] = calcChecksum(frame, size_bytes);
 
-    writeBytes((const char *) frame, size_bytes);
+    uint8_t checksum = calcChecksum(frame, size_bytes - XBee::FrameBytes);
+    frame[size_bytes - 1] = checksum;
+
+    tempFrame.length_bytes = size_bytes;
+    memcpy(tempFrame.frame, frame, size_bytes);
+
+    circularQueuePush(transmitFrameQueue, tempFrame);
 }
 
 void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
@@ -255,54 +255,46 @@ void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t lengt
     manufacturerID |= frame[index++];
 }
 
-void XBeeDevice::handleAtCommandResponseGeneric(const uint8_t *frame, uint8_t length_bytes)
+void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn)
 {
     uint16_t command = getAtCommand(frame);
-
-//    std::cout << "Received response for " << std::hex << (int) (command * 0xFFFF) << std::dec << "\n";
-
-    std::cout << "Length: " << std::dec << (int) length_bytes << std::endl;
-    for (uint8_t i = 0; i < length_bytes + XBee::FrameBytes; i++)
+    switch (command)
     {
-        std::cout << std::dec << ".." << std::hex
-                  << (int) (frame[i] & 0xFF) << " ";
+        case XBee::AtCommand::NodeDiscovery:
+            handleNodeDiscoveryResponse(frame, length_bytes);
+            return;
+
+        default:
+            break;
     }
-    std::cout << "\n";
+
+    std::cout << "Received response for " << std::hex << (int) (command & 0xFFFF) << ": ";
     for (uint8_t i = 0; i < length_bytes - XBee::AtCommandResponse::PacketBytes; i++)
     {
-        std::cout << std::dec << ".." << std::hex
+        std::cout << std::dec << std::hex
                   << (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF) << " ";
     }
+
+    std::cout << std::endl;
 }
 
 void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
 {
     uint8_t commandStatus = frame[XBee::AtCommandResponse::BytesBeforeCommandStatus];
-    if (commandStatus != 0x00)
-    {
-        std::string commandString;
-        switch (commandStatus)
-        {
-            case XBee::AtCommand::Error:
-                commandString = "Error in command";
-                break;
-            case XBee::AtCommand::InvalidCommand:
-                commandString = "Invalid command";
-                break;
-            case XBee::AtCommand::InvalidParameter:
-                commandString = "Invalid parameter";
-                break;
-            default:
-                commandString = "You have broken physics";
-                break;
-        }
-        std::cout << "Error: " << commandString.c_str() << std::endl;
-        return;
-    }
 
     uint16_t command = getAtCommand(frame);
 
-    std::cout << "At command response for " << std::hex << (int) (command & 0xFFFF) << std::endl;
+    std::cout << "RECEIVED RESPONSE ";
+
+    for (uint8_t i = 0; i < length_bytes + XBee::FrameBytes; i++)
+    {
+        std::cout << std::dec << std::hex
+                  << (int) (frame[i] & 0xFF) << " ";
+    }
+
+    std::cout << std::endl;
+
+    bool paramWasBeingWaitedOn = false;
 
     if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn))
     {
@@ -310,22 +302,35 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
         circularQueuePeek(atParamConfirmationsBeingWaitedOn, &commandBeingWaitedOn, 1);
         if (commandBeingWaitedOn == command)
         {
+            paramWasBeingWaitedOn = true;
             circularQueuePop(atParamConfirmationsBeingWaitedOn, &commandBeingWaitedOn, 1);
-            std::cout << "Command popped" << std::endl;
-            return;
+
+            if (commandStatus != 0x00)
+            {
+                std::string commandString;
+                switch (commandStatus)
+                {
+                    case XBee::AtCommand::Error:
+                        commandString = "Error in command";
+                        break;
+                    case XBee::AtCommand::InvalidCommand:
+                        commandString = "Invalid command";
+                        break;
+                    case XBee::AtCommand::InvalidParameter:
+                        commandString = "Invalid parameter";
+                        break;
+                    default:
+                        commandString = "You have broken physics";
+                        break;
+                }
+                std::cout << "AT Command response for " << (int) (command & 0xFFFF) << ": " << commandString.c_str()
+                          << std::endl;
+                return;
+            }
         }
     }
 
-    switch (command)
-    {
-        case XBee::AtCommand::NodeDiscovery:
-            handleNodeDiscoveryResponse(frame, length_bytes);
-            break;
-
-        default:
-            handleAtCommandResponseGeneric(frame, length_bytes);
-            break;
-    }
+    _handleAtCommandResponse(frame, length_bytes, paramWasBeingWaitedOn);
 }
 
 bool XBeeDevice::handleFrame(const uint8_t *frame)
@@ -397,6 +402,8 @@ bool XBeeDevice::receive()
 
     handleFrame(receiveFrame);
 
+    receiveFrame[0] = 0;
+
     return true;
 }
 
@@ -413,19 +420,17 @@ void XBeeDevice::doCycle()
 
     while (true)
     {
-        if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn) || transmitFrameQueue.empty())
+        if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn) || isCircularQueueEmpty(transmitFrameQueue))
         {
             break;
         }
-        XBee::BasicFrame *frame = transmitFrameQueue.front();
-        uint8_t frameType = getFrameType(frame->frame);
+
+        circularQueuePop(transmitFrameQueue, &tempFrame, 1);
+        uint8_t frameType = getFrameType(tempFrame.frame);
         if (frameType == XBee::FrameType::AtCommandQueueParameterValue || frameType == XBee::FrameType::AtCommand)
         {
-            circularQueuePush(atParamConfirmationsBeingWaitedOn, getAtCommand(frame->frame));
+            circularQueuePush(atParamConfirmationsBeingWaitedOn, getAtCommand(tempFrame.frame));
         }
-        writeBytes((const char *) frame->frame, frame->length_bytes);
-        transmitFrameQueue.pop();
-        free(frame->frame);
-        free(frame);
+        writeBytes((const char *) tempFrame.frame, tempFrame.length_bytes);
     }
 }

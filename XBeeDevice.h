@@ -68,7 +68,7 @@ private:
 
     bool handleFrame(const uint8_t *frame);
 
-    void handleAtCommandResponseGeneric(const uint8_t *frame, uint8_t length_bytes);
+    void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
 
     void handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
@@ -79,9 +79,11 @@ private:
 
     uint8_t currentFrameID;
 
-//    CircularQueue<XBee::BasicFrame> *transmitFrameQueue;
-    std::queue<XBee::BasicFrame *> transmitFrameQueue;
+    CircularQueue<XBee::BasicFrame> *transmitFrameQueue;
+//    std::queue<XBee::BasicFrame *> transmitFrameQueue;
 //    std::queue<uint16_t> atParamConfirmationsBeingWaitedOn;
+
+    XBee::BasicFrame tempFrame;
 
     CircularQueue<uint16_t> *atParamConfirmationsBeingWaitedOn;
 
