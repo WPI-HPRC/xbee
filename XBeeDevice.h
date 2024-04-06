@@ -49,6 +49,8 @@ public:
 
     void doCycle();
 
+    bool sendTransmitRequestsImmediately = false;
+
 private:
     static uint16_t getAtCommand(const uint8_t *frame);
 

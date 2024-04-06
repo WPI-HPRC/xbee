@@ -110,10 +110,9 @@ void XBeeDevice::sendAtCommandLocal(uint16_t command, const uint8_t *commandData
 
 void XBeeDevice::sendNodeDiscoveryCommand()
 {
-//    setParameter(XBee::AtCommand::NodeDiscoveryBackoff, 0x20);
-//    sendAtCommandLocal(AsciiToUint16('K', 'Z'), nullptr, 0);
+    setParameter(XBee::AtCommand::NodeDiscoveryBackoff, 0x20);
     setParameter(XBee::AtCommand::NodeDiscoveryOptions, 0x02);
-//    sendAtCommandLocal(XBee::AtCommand::NodeDiscovery, nullptr, 0);
+    sendAtCommandLocal(XBee::AtCommand::NodeDiscovery, nullptr, 0);
 }
 
 void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes)
@@ -150,10 +149,17 @@ void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
     uint8_t checksum = calcChecksum(frame, size_bytes - XBee::FrameBytes);
     frame[size_bytes - 1] = checksum;
 
-    tempFrame.length_bytes = size_bytes;
-    memcpy(tempFrame.frame, frame, size_bytes);
+    if (getFrameType(frame) == XBee::FrameType::TransmitRequest && sendTransmitRequestsImmediately)
+    {
+        writeBytes((const char *) frame, size_bytes);
+    }
+    else
+    {
+        tempFrame.length_bytes = size_bytes;
+        memcpy(tempFrame.frame, frame, size_bytes);
 
-    circularQueuePush(transmitFrameQueue, tempFrame);
+        circularQueuePush(transmitFrameQueue, tempFrame);
+    }
 }
 
 void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
@@ -242,6 +248,14 @@ void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t lengt
         nodeID[i] = (char) byte;
     }
 
+    log("Found device: ");
+    for (int i = 0; i < iDLength; i++)
+    {
+        log("%c", nodeID[i]);
+    }
+    log(" - %016llx\n", static_cast<unsigned long long>(serialNumber));
+
+
     uint16_t parentNetworkAddress = frame[index++] << 8;
     parentNetworkAddress |= frame[index++];
 
@@ -284,7 +298,6 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
     uint16_t command = getAtCommand(frame);
 
     bool paramWasBeingWaitedOn = false;
-
     if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn))
     {
         uint16_t commandBeingWaitedOn = 0;

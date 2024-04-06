@@ -5,6 +5,8 @@
 #ifndef HPRC_CIRCULARQUEUE_HPP
 #define HPRC_CIRCULARQUEUE_HPP
 
+#include <iostream>
+
 template<typename T>
 
 struct CircularQueue
@@ -41,7 +43,7 @@ circularQueuePeek(CircularQueue<T> *queue, T *outBuffer, unsigned int length, un
     if (queue->data + queue->length * queue->dataSize_bytes - queue->readPtr >= length_bytes)
     {
         // No wrap-around, data is contiguous
-        memcpy(outBuffer, queue->readPtr, length_bytes);\
+        memcpy(outBuffer, queue->readPtr, length_bytes);
         if (bytes_overflowed != nullptr)
         {
             *bytes_overflowed = 0;

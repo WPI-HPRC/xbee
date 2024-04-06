@@ -3,6 +3,7 @@
 //
 
 #include <cstdint>
+#include <cstddef>
 
 #define AsciiToUint16(x, y)((uint16_t)x << 8 | y)
 
