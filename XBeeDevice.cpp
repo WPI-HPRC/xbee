@@ -479,8 +479,11 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
     if (calculatedChecksum != receivedChecksum)
     {
-        log("Checksum mismatch. Calculated: %02x, received: %02x\n", (int) (calculatedChecksum & 0xFF),
-            (int) (receivedChecksum & 0xFF));
+        if (logWrongChecksums)
+        {
+            log("Checksum mismatch. Calculated: %02x, received: %02x\n", (int) (calculatedChecksum & 0xFF),
+                (int) (receivedChecksum & 0xFF));
+        }
         incorrectChecksum(calculatedChecksum, receivedChecksum);
         return false;
     }
