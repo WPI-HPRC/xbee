@@ -35,6 +35,18 @@ public:
 
     void sendAtCommandLocal(uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes);
 
+    void
+    sendAtCommandRemote(uint64_t address, uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes);
+
+    void sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16_t command, const uint8_t *commandData,
+                             size_t commandDataSize_bytes);
+
+    void setParameterRemote(uint64_t address, uint16_t parameter, const uint8_t *value, size_t valueSize_bytes);
+
+    void setParameterRemote(uint64_t address, uint16_t parameter, const uint8_t value);
+
+    void queryParameterRemote(uint64_t address, uint16_t parameter);
+
     void setParameter(uint16_t parameter, const uint8_t *value, size_t valueSize_bytes);
 
     void setParameter(uint16_t parameter, uint8_t value);
@@ -51,8 +63,12 @@ public:
 
     bool sendTransmitRequestsImmediately = false;
 
+    bool sendFramesImmediately = false;
+
 private:
     static uint16_t getAtCommand(const uint8_t *frame);
+
+    static uint16_t getRemoteAtCommand(const uint8_t *frame);
 
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
 
@@ -66,6 +82,8 @@ private:
 
     virtual void incorrectChecksum(uint8_t calculated, uint8_t received) = 0;
 
+    virtual void didCycle() = 0;
+
     void parseReceivePacket(const uint8_t *frame, uint8_t length);
 
     void parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes);
@@ -76,6 +94,10 @@ private:
 
     void handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
+    void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
+
+    void handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
+
     void handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t length_bytes);
 
     uint8_t *transmitRequestFrame;
@@ -85,7 +107,7 @@ private:
 
     CircularQueue<XBee::BasicFrame> *transmitFrameQueue;
 
-    XBee::BasicFrame tempFrame;
+    XBee::BasicFrame tempFrame{};
 
     CircularQueue<uint16_t> *atParamConfirmationsBeingWaitedOn;
 

@@ -42,7 +42,6 @@ XBeeDevice::XBeeDevice()
 
     transmitFrameQueue = circularQueueCreate<XBee::BasicFrame>(16);
 
-
     currentFrameID = 1;
 }
 
@@ -62,6 +61,64 @@ void XBeeDevice::setParameter(uint16_t parameter, const uint8_t *value, size_t v
     queueAtCommandLocal(parameter, value, valueSize_bytes);
 //    write();
 //    applyChanges();
+}
+
+void XBeeDevice::queryParameterRemote(uint64_t address, uint16_t parameter)
+{
+    sendAtCommandRemote(address, parameter, nullptr, 0);
+}
+
+void XBeeDevice::setParameterRemote(uint64_t address, uint16_t parameter, const uint8_t value)
+{
+    setParameterRemote(address, parameter, &value, 1);
+}
+
+void XBeeDevice::setParameterRemote(uint64_t address, uint16_t parameter, const uint8_t *value, size_t valueSize_bytes)
+{
+    // Could queue it, but just set it directly right now
+    sendAtCommandRemote(address, parameter, value, valueSize_bytes);
+//    write();
+//    applyChanges();
+}
+
+void XBeeDevice::sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16_t command, const uint8_t *commandData,
+                                     size_t commandDataSize_bytes)
+{
+    size_t index = 1;
+    size_t contentLength_bytes = XBee::RemoteAtCommandResponse::PacketBytes + commandDataSize_bytes;
+
+    transmitRequestFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
+    transmitRequestFrame[index++] = contentLength_bytes & 0xFF;
+
+    transmitRequestFrame[index++] = frameType; // Local AT Command Request
+    transmitRequestFrame[index++] = currentFrameID++; // Frame ID
+
+    for (int i = 0; i < 8; i++)
+    {
+        transmitRequestFrame[index++] = (address >> ((7 - i) * 8)) & 0xFF;
+    }
+
+    transmitRequestFrame[index++] = 0xFF; // Reserved
+    transmitRequestFrame[index++] = 0xFE; // Reserved
+
+    transmitRequestFrame[index++] = 0x01;
+
+    transmitRequestFrame[index++] = (command >> 8) & 0xFF;
+    transmitRequestFrame[index++] = command & 0xFF;
+
+    if (commandData)
+    {
+        memcpy(&transmitRequestFrame[index], commandData, commandDataSize_bytes);
+    }
+
+//    circularQueuePush(atParamConfirmationsBeingWaitedOn, command);
+    sendFrame(transmitRequestFrame, commandDataSize_bytes + XBee::RemoteAtCommandTransmit::FrameBytes);
+}
+
+void XBeeDevice::sendAtCommandRemote(uint64_t address, uint16_t command, const uint8_t *commandData,
+                                     size_t commandDataSize_bytes)
+{
+    sendAtCommandRemote(address, XBee::FrameType::RemoteAtCommandRequest, command, commandData, commandDataSize_bytes);
 }
 
 void XBeeDevice::applyChanges()
@@ -149,7 +206,8 @@ void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
     uint8_t checksum = calcChecksum(frame, size_bytes - XBee::FrameBytes);
     frame[size_bytes - 1] = checksum;
 
-    if (getFrameType(frame) == XBee::FrameType::TransmitRequest && sendTransmitRequestsImmediately)
+    if (sendFramesImmediately ||
+        (getFrameType(frame) == XBee::FrameType::TransmitRequest && sendTransmitRequestsImmediately))
     {
         writeBytes((const char *) frame, size_bytes);
     }
@@ -209,6 +267,12 @@ uint16_t XBeeDevice::getAtCommand(const uint8_t *frame)
 {
     return frame[XBee::AtCommandResponse::BytesBeforeCommand] << 8 |
            frame[XBee::AtCommandResponse::BytesBeforeCommand + 1];
+}
+
+uint16_t XBeeDevice::getRemoteAtCommand(const uint8_t *frame)
+{
+    return frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand] << 8 |
+           frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand + 1];
 }
 
 void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t length_bytes)
@@ -338,6 +402,69 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
     _handleAtCommandResponse(frame, length_bytes, paramWasBeingWaitedOn);
 }
 
+void XBeeDevice::_handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn)
+{
+    uint16_t command = getRemoteAtCommand(frame);
+
+    if (command == XBee::AtCommand::SupplyVoltage)
+    {
+
+        uint16_t voltage = frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData] << 8 |
+                           frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData + 1];
+
+        log("Voltage: %f mV", (float) voltage / 1000);
+    }
+    else
+    {
+        log("Remote AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
+        for (uint8_t i = 0; i < length_bytes - XBee::RemoteAtCommandResponse::PacketBytes; i++)
+        {
+            log("%02x ", (int) (frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
+        }
+    }
+
+    log("\n");
+}
+
+void XBeeDevice::handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
+{
+    uint8_t commandStatus = frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandStatus];
+
+    uint16_t command = getRemoteAtCommand(frame);
+
+    bool paramWasBeingWaitedOn = false;
+    uint16_t commandBeingWaitedOn = 0;
+    circularQueuePeek(atParamConfirmationsBeingWaitedOn, &commandBeingWaitedOn, 1);
+    if (commandStatus != 0x00)
+    {
+        log("Remote AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
+        switch (commandStatus)
+        {
+            case XBee::AtCommand::Error:
+                log("Error in command\n");
+                break;
+            case XBee::AtCommand::InvalidCommand:
+                log("Invalid command\n");
+                break;
+            case XBee::AtCommand::InvalidParameter:
+                log("Invalid parameter\n");
+                break;
+            default:
+                log("You have broken physics\n");
+                break;
+        }
+        return;
+    }
+    else if (length_bytes == XBee::AtCommandResponse::PacketBytes)
+    {
+        log("AT command response for %c%c: OK\n", (command & 0xFF00) >> 8, command & 0x00FF);
+        return;
+    }
+
+
+    _handleRemoteAtCommandResponse(frame, length_bytes, paramWasBeingWaitedOn);
+}
+
 bool XBeeDevice::handleFrame(const uint8_t *frame)
 {
     size_t index = 1; // Skip start delimiter
@@ -372,6 +499,10 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
         case XBee::FrameType::AtCommandResponse:
             handleAtCommandResponse(frame, lengthHigh);
+            break;
+
+        case XBee::FrameType::RemoteAtCommandResponse:
+            handleRemoteAtCommandResponse(frame, lengthHigh);
             break;
 
         default:
@@ -437,4 +568,10 @@ void XBeeDevice::doCycle()
         }
         writeBytes((const char *) tempFrame.frame, tempFrame.length_bytes);
     }
+    didCycle();
+}
+
+void XBeeDevice::didCycle()
+{
+    // Optional to implement.
 }

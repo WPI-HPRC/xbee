@@ -80,6 +80,8 @@ namespace XBee
             RFDataRate = AsciiToUint16('B', 'R'),
             EnergyDetect = AsciiToUint16('E', 'D'),
             UnicastAttemptedCount = AsciiToUint16('U', 'A'),
+            MacAckFailureCount = AsciiToUint16('E', 'A'),
+            TransmissionFailureCount = AsciiToUint16('T', 'R'),
         };
         enum CommandStatus
         {
@@ -114,6 +116,12 @@ namespace XBee
             const uint8_t PacketBytes = AtCommandTransmit::PacketBytes + 0;
             const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
         }
+    }
+
+    namespace RemoteAtCommandTransmit
+    {
+        const uint8_t PacketBytes = 15; // +1 for frame type, +1 for frame ID, +8 for dest address, +2 for reserved, +1 for remote options, +2 for AT command
+        const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
     }
 
     namespace AtCommandQueue
@@ -171,6 +179,24 @@ namespace XBee
         const uint8_t BytesBeforeCommand = 5;
         const uint8_t BytesBeforeCommandStatus = 7;
         const uint8_t BytesBeforeCommandData = 8;
+
+        namespace NodeDiscovery
+        {
+            const uint8_t PacketBytes = AtCommandResponse::PacketBytes +
+                                        14; // +4 for SH, +4 for SL, +1 for Device Type, +1 for status, +2 for profile ID, +2 for manufacturer ID
+            const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+            const uint8_t MaxPacketBytes = PacketBytes +
+                                           26; // +20 for NI, +1 for NI null byte, +4 for Digi Device Type, +1 for RSSI of last hop
+        }
+    }
+
+    namespace RemoteAtCommandResponse
+    {
+        const uint8_t PacketBytes = 15; // +1 for frame type, +1 for frame ID, +8 for dest address, +2 for reserved, +2 for AT command, + 1 for command status
+        const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+        const uint8_t BytesBeforeCommand = 15;
+        const uint8_t BytesBeforeCommandStatus = 17;
+        const uint8_t BytesBeforeCommandData = 18;
 
         namespace NodeDiscovery
         {
