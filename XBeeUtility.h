@@ -194,6 +194,7 @@ namespace XBee
     {
         const uint8_t PacketBytes = 15; // +1 for frame type, +1 for frame ID, +8 for dest address, +2 for reserved, +2 for AT command, + 1 for command status
         const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+        const uint8_t BytesBeforeAddress = 5;
         const uint8_t BytesBeforeCommand = 15;
         const uint8_t BytesBeforeCommandStatus = 17;
         const uint8_t BytesBeforeCommandData = 18;

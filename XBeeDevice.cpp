@@ -26,6 +26,27 @@ uint8_t getFrameType(const uint8_t *packet)
     return packet[3];
 }
 
+uint64_t getAddress(const uint8_t *packet, int *initialIndex)
+{
+    uint64_t address = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        address |= ((uint64_t) packet[(*initialIndex)] << (8 * (7 - i)));
+        *initialIndex += 1;
+    }
+
+    return address;
+}
+
+uint64_t getAddress(const uint8_t *packet)
+{
+    uint64_t address = 0;
+    int _ = 0;
+
+    return getAddress(packet, &_);
+}
+
 XBeeDevice::XBeeDevice()
 {
     receiveFrame = new uint8_t[XBee::MaxPacketBytes];
@@ -406,21 +427,21 @@ void XBeeDevice::_handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t le
 {
     uint16_t command = getRemoteAtCommand(frame);
 
+    uint64_t address = getAddress(&frame[XBee::RemoteAtCommandResponse::BytesBeforeAddress]);
+
+    log("Remote AT response from %016llx: ", (unsigned long long) address);
     if (command == XBee::AtCommand::SupplyVoltage)
     {
-
         uint16_t voltage = frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData] << 8 |
                            frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData + 1];
 
-        log("Voltage: %f mV", (float) voltage / 1000);
+        log("voltage = %f mV", (float) voltage / 1000);
     }
-    else
+
+    log("%c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
+    for (uint8_t i = 0; i < length_bytes - XBee::RemoteAtCommandResponse::PacketBytes; i++)
     {
-        log("Remote AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
-        for (uint8_t i = 0; i < length_bytes - XBee::RemoteAtCommandResponse::PacketBytes; i++)
-        {
-            log("%02x ", (int) (frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
-        }
+        log("%02x ", (int) (frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
     }
 
     log("\n");
