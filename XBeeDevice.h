@@ -92,11 +92,11 @@ private:
 
     bool handleFrame(const uint8_t *frame);
 
-    void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
+    virtual void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
 
     void handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
-    void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
+    virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
 
     void handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
