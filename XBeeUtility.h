@@ -20,6 +20,21 @@ namespace XBee
 {
     const uint8_t StartDelimiter = 0x7E;
 
+    struct RemoteDevice
+    {
+        uint64_t serialNumber;
+        uint8_t id[20]; //  (variable, 0-20 bytes)
+        uint8_t idLength;
+        uint8_t deviceType;
+        uint8_t status;
+        uint16_t profileID;
+        uint16_t manufacturerID;
+
+        // These last two fields depend on 'NO' settings; they may not be included in the packet
+        uint32_t digiDeviceType;
+        uint8_t lastHopRssi;
+    };
+
     namespace FrameType
     {
         enum FrameType

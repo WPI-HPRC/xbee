@@ -68,15 +68,17 @@ public:
     bool logWrongChecksums = true;
 
 private:
-    static uint16_t getAtCommand(const uint8_t *frame);
-
-    static uint16_t getRemoteAtCommand(const uint8_t *frame);
-
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
 
     virtual void readBytes(uint8_t *buffer, size_t length_bytes) = 0;
 
     virtual void packetRead() = 0;
+
+    virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
+
+    virtual void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
+
+    virtual void remoteDeviceDiscovered(XBee::RemoteDevice *device);
 
     virtual void handleReceivePacket(XBee::ReceivePacket::Struct *frame) = 0;
 
@@ -92,11 +94,7 @@ private:
 
     bool handleFrame(const uint8_t *frame);
 
-    virtual void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
-
     void handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
-
-    virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
 
     void handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
@@ -119,6 +117,18 @@ private:
     uint8_t *receiveFrame;
     char *nodeID;
     CircularBuffer *buffer;
+protected:
+    static uint16_t getRemoteAtCommand(const uint8_t *frame);
+
+    static uint8_t getFrameType(const uint8_t *packet);
+
+    static uint16_t getAtCommand(const uint8_t *frame);
+
+    static uint64_t getAddress(const uint8_t *packet, int *initialIndex);
+
+    static uint64_t getAddress(const uint8_t *packet);
+
+    static uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes);
 };
 
 

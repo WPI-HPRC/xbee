@@ -9,7 +9,7 @@
 
 int goodFrameNumber = 0;
 
-uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes)
+uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
     uint8_t sum = 0;
 
@@ -21,12 +21,12 @@ uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes)
     return 0xFF - sum;
 }
 
-uint8_t getFrameType(const uint8_t *packet)
+uint8_t XBeeDevice::getFrameType(const uint8_t *packet)
 {
     return packet[3];
 }
 
-uint64_t getAddress(const uint8_t *packet, int *initialIndex)
+uint64_t XBeeDevice::getAddress(const uint8_t *packet, int *initialIndex)
 {
     uint64_t address = 0;
 
@@ -39,7 +39,7 @@ uint64_t getAddress(const uint8_t *packet, int *initialIndex)
     return address;
 }
 
-uint64_t getAddress(const uint8_t *packet)
+uint64_t XBeeDevice::getAddress(const uint8_t *packet)
 {
     uint64_t address = 0;
     int _ = 0;
@@ -296,8 +296,21 @@ uint16_t XBeeDevice::getRemoteAtCommand(const uint8_t *frame)
            frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand + 1];
 }
 
+void XBeeDevice::remoteDeviceDiscovered(XBee::RemoteDevice *device)
+{
+    log("Found device: ");
+    for (int i = 0; i < device->idLength; i++)
+    {
+        log("%c", device->id[i]);
+    }
+    log(" - %016llx\n", static_cast<unsigned long long>(device->serialNumber));
+}
+
 void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t length_bytes)
 {
+
+    XBee::RemoteDevice *device = new XBee::RemoteDevice;
+
     size_t index = XBee::AtCommandResponse::BytesBeforeCommandData + 2; // Add two to skip the MY parameter
 
     uint32_t serialHigh = 0;
@@ -312,8 +325,8 @@ void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t lengt
         serialLow = serialLow | (frame[index++] << 8 * (7 - i));
     }
 
-    uint64_t serialNumber = serialHigh;
-    serialNumber = serialNumber << 32 | serialLow;
+    device->serialNumber = serialHigh;
+    device->serialNumber = device->serialNumber << 32 | serialLow;
 
     int iDLength = 0;
 
@@ -333,25 +346,19 @@ void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t lengt
         nodeID[i] = (char) byte;
     }
 
-    log("Found device: ");
-    for (int i = 0; i < iDLength; i++)
-    {
-        log("%c", nodeID[i]);
-    }
-    log(" - %016llx\n", static_cast<unsigned long long>(serialNumber));
+    memcpy(device->id, nodeID, iDLength);
+    device->idLength = iDLength;
 
+    device->deviceType = frame[index++];
+    device->status = frame[index++];
 
-    uint16_t parentNetworkAddress = frame[index++] << 8;
-    parentNetworkAddress |= frame[index++];
+    device->profileID = frame[index++] << 8;
+    device->profileID |= frame[index++];
 
-    uint8_t deviceType = frame[index++];
-    uint8_t status = frame[index++];
+    device->manufacturerID = frame[index++] << 8;
+    device->manufacturerID |= frame[index++];
 
-    uint16_t profileID = frame[index++] << 8;
-    profileID |= frame[index++];
-
-    uint16_t manufacturerID = frame[index++] << 8;
-    manufacturerID |= frame[index++];
+    remoteDeviceDiscovered(device);
 }
 
 void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn)
