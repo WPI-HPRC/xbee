@@ -79,7 +79,8 @@ void XBeeDevice::setParameter(uint16_t parameter, const uint8_t value)
 void XBeeDevice::setParameter(uint16_t parameter, const uint8_t *value, size_t valueSize_bytes)
 {
     // Could queue it, but just set it directly right now
-    queueAtCommandLocal(parameter, value, valueSize_bytes);
+//    queueAtCommandLocal(parameter, value, valueSize_bytes);
+    sendAtCommandLocal(XBee::FrameType::AtCommand, parameter, value, valueSize_bytes);
 //    write();
 //    applyChanges();
 }
@@ -370,7 +371,7 @@ void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_b
     log("AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
     for (uint8_t i = 0; i < length_bytes - XBee::AtCommandResponse::PacketBytes; i++)
     {
-        log("%02x ", (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
+        log("%d ", (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
     }
 
     log("\n");
@@ -383,7 +384,7 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
     uint16_t command = getAtCommand(frame);
 
     bool paramWasBeingWaitedOn = false;
-    if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn))
+    if (!isCircularQueueEmpty(atParamConfirmationsBeingWaitedOn) || sendFramesImmediately)
     {
         uint16_t commandBeingWaitedOn = 0;
         circularQueuePeek(atParamConfirmationsBeingWaitedOn, &commandBeingWaitedOn, 1);
@@ -391,32 +392,32 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
         {
             paramWasBeingWaitedOn = true;
             circularQueuePop(atParamConfirmationsBeingWaitedOn, &commandBeingWaitedOn, 1);
+        }
 
-            if (commandStatus != 0x00)
+        if (commandStatus != XBee::AtCommand::Ok)
+        {
+            log("AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
+            switch (commandStatus)
             {
-                log("AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
-                switch (commandStatus)
-                {
-                    case XBee::AtCommand::Error:
-                        log("Error in command\n");
-                        break;
-                    case XBee::AtCommand::InvalidCommand:
-                        log("Invalid command\n");
-                        break;
-                    case XBee::AtCommand::InvalidParameter:
-                        log("Invalid parameter\n");
-                        break;
-                    default:
-                        log("You have broken physics\n");
-                        break;
-                }
-                return;
+                case XBee::AtCommand::Error:
+                    log("Error in command\n");
+                    break;
+                case XBee::AtCommand::InvalidCommand:
+                    log("Invalid command\n");
+                    break;
+                case XBee::AtCommand::InvalidParameter:
+                    log("Invalid parameter\n");
+                    break;
+                default:
+                    log("You have broken physics. Received %02x\n", (int) (commandStatus & 0xFF));
+                    break;
             }
-            else if (length_bytes == XBee::AtCommandResponse::PacketBytes)
-            {
-                log("AT command response for %c%c: OK\n", (command & 0xFF00) >> 8, command & 0x00FF);
-                return;
-            }
+            return;
+        }
+        else if (length_bytes == XBee::AtCommandResponse::PacketBytes)
+        {
+            log("AT command response for %c%c: OK\n", (command & 0xFF00) >> 8, command & 0x00FF);
+            return;
         }
     }
 
@@ -474,8 +475,11 @@ void XBeeDevice::handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t len
             case XBee::AtCommand::InvalidParameter:
                 log("Invalid parameter\n");
                 break;
+            case XBee::RemoteAtCommand::TransmissionFailure:
+                log("Transmission failure\n");
+                break;
             default:
-                log("You have broken physics\n");
+                log("You have broken physics. Received %02x\n", (int) (commandStatus & 0xFF));
                 break;
         }
         return;

@@ -97,6 +97,7 @@ namespace XBee
             UnicastAttemptedCount = AsciiToUint16('U', 'A'),
             MacAckFailureCount = AsciiToUint16('E', 'A'),
             TransmissionFailureCount = AsciiToUint16('T', 'R'),
+            ApiOptions = AsciiToUint16('A', 'O')
         };
         enum CommandStatus
         {
@@ -104,6 +105,18 @@ namespace XBee
             Error = 1,
             InvalidCommand = 2,
             InvalidParameter = 3
+        };
+    }
+
+    namespace RemoteAtCommand
+    {
+        enum CommandStatus
+        {
+            Ok = 0,
+            Error = 1,
+            InvalidCommand = 2,
+            InvalidParameter = 3,
+            TransmissionFailure = 4
         };
     }
 
