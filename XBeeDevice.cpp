@@ -484,7 +484,7 @@ void XBeeDevice::handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t len
         }
         return;
     }
-    else if (length_bytes == XBee::AtCommandResponse::PacketBytes)
+    else if (length_bytes == XBee::RemoteAtCommandResponse::PacketBytes)
     {
         log("AT command response for %c%c: OK\n", (command & 0xFF00) >> 8, command & 0x00FF);
         return;
