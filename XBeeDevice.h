@@ -92,6 +92,8 @@ private:
 
     void parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes);
 
+    void parseExplicitReceivePacket(const uint8_t *frame, uint8_t length_bytes);
+
     bool handleFrame(const uint8_t *frame);
 
     void handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);

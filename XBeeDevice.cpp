@@ -263,6 +263,27 @@ void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
     handleReceivePacket(receivePacketStruct);
 }
 
+void XBeeDevice::parseExplicitReceivePacket(const uint8_t *frame, uint8_t length_bytes)
+{
+    uint8_t payloadLength = length_bytes -
+                            XBee::ExplicitRxIndicator::PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
+
+    uint64_t addr = 0;
+
+    uint8_t index = XBee::ExplicitRxIndicator::BytesBeforeAddress;
+
+    for (int i = 0; i < 8; i++)
+    {
+        addr = addr | (frame[index++] << 8 * i);
+    }
+
+    receivePacketStruct->dataLength_bytes = payloadLength;
+    receivePacketStruct->senderAddress = addr;
+    receivePacketStruct->data = &frame[XBee::ExplicitRxIndicator::BytesBeforePayload];
+
+    handleReceivePacket(receivePacketStruct);
+}
+
 void XBeeDevice::parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes)
 {
     uint8_t payloadLength = length_bytes -
@@ -529,6 +550,10 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
             parseReceivePacket64Bit(frame, lengthHigh);
             break;
 
+        case XBee::FrameType::ExplicitRxIndicator:
+            parseExplicitReceivePacket(frame, lengthHigh);
+            break;
+
         case XBee::FrameType::AtCommandResponse:
             handleAtCommandResponse(frame, lengthHigh);
             break;
@@ -539,6 +564,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
         default:
             log("Unrecognized frame type: %02x\n", (int) (frameType & 0xFF));
+            break;
 
     }
     return true;

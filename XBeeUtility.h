@@ -14,6 +14,11 @@
  * XBee namespace with constants for utility.
  *
  * NOTE: PacketBytes and FrameBytes fields represent the *minimum* number of bytes for their respective fields
+ *
+ * Info from:
+ * https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf
+ * https://www.digi.com/resources/documentation/Digidocs/90002002/Reference/r_cmd_ND.htm
+ *
  */
 
 namespace XBee
@@ -189,6 +194,27 @@ namespace XBee
         const uint8_t BytesBeforeAddress = 4;
         const uint8_t BytesBeforeRssi = 12;
         const uint8_t BytesBeforePayload = 14;
+
+        struct Struct
+        {
+            uint8_t dataLength_bytes;
+            uint8_t negativeRssi;
+            uint64_t senderAddress;
+            const uint8_t *data;
+        };
+    }
+
+    namespace ExplicitRxIndicator
+    {/*
+     * +1 for frame type, +8 for sender address, +2 for reserved, +1 for source endpoint, +1 for destination endpoint,
+     * +2 for cluster ID, +2 for profile ID, +1 for receive options,
+     *
+     */
+        const uint8_t PacketBytes = 18;
+        const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+        const uint8_t BytesBeforePacket = 4;
+        const uint8_t BytesBeforeAddress = 4;
+        const uint8_t BytesBeforePayload = 21;
 
         struct Struct
         {
