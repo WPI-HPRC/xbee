@@ -24,6 +24,8 @@
 namespace XBee
 {
     const uint8_t StartDelimiter = 0x7E;
+    const uint8_t EscapeCharacter = 0x7D;
+    const uint8_t EscapeXorByte = 0x20;
 
     struct RemoteDevice
     {
@@ -39,6 +41,16 @@ namespace XBee
         uint32_t digiDeviceType;
         uint8_t lastHopRssi;
     };
+
+    namespace ApiOptions
+    {
+        enum ApiOptions
+        {
+            TransparentMode = 0x00,
+            ApiWithoutEscapes = 0x01,
+            ApiWithEscapes = 0x02
+        };
+    }
 
     namespace FrameType
     {

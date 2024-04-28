@@ -390,6 +390,8 @@ void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_b
     uint16_t command = getAtCommand(frame);
 
     log("AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
+
+//    if (command == )
     for (uint8_t i = 0; i < length_bytes - XBee::AtCommandResponse::PacketBytes; i++)
     {
         log("%d ", (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
@@ -563,7 +565,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
             break;
 
         default:
-            log("Unrecognized frame type: %02x\n", (int) (frameType & 0xFF));
+//            log("Unrecognized frame type: %02x\n", (int) (frameType & 0xFF));
             break;
 
     }

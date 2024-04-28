@@ -67,6 +67,8 @@ public:
 
     bool logWrongChecksums = true;
 
+    XBee::ApiOptions::ApiOptions apiOptions;
+
 private:
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
 
