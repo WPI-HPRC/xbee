@@ -275,6 +275,48 @@ namespace XBee
         }
     }
 
+    namespace TransmitStatus
+    {
+        const uint8_t PacketBytes = 3;// +1 for frame type, +1 for frameID, +1 for delivery status
+        const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+        const uint8_t BytesBeforeFrameID = 4;
+        const uint8_t BytesBeforeStatus = 5;
+
+        enum StatusCode
+        {
+            Success = 0x00,
+            NoAckReceived = 0x01,
+            CcaFailure = 0x02,
+            IndirectMessageUnrequested = 0x03,
+            TransceiverUnableToCompleteTransmission = 0x04,
+            NetworkAckFailure = 0x21,
+            NotJoinedToNetwork = 0x22,
+            InvalidFrameValues = 0x2C,
+            InternalError = 0x31,
+            ResourceError = 0x32,
+            NoSecureSessionConnection = 0x34,
+            EncryptionFailure = 0x35,
+            MessageTooLong = 0x74,
+            SocketClosedUnexpectedly = 0x76,
+            InvalidUdpPort = 0x78,
+            InvalidTcpPort = 0x79,
+            InvalidHostAddress = 0x7A,
+            InvalidDataMode = 0x7B,
+            InvalidInterface = 0x7C,
+            InterfaceNotAcceptingFrames = 0x7D,
+            ModemUpdateInProgress = 0x7E,
+            ConnectionRefused = 0x80,
+            SocketConnectionLost = 0x81,
+            NoServer = 0x82,
+            SocketClosed = 0x83,
+            UnknownServer = 0x84,
+            UnknownError = 0x85,
+            InvalidTlsConfiguration = 0x86,
+            SocketNotConnected = 0x87,
+            SocketNotBound = 0x88
+        };
+    }
+
     // --- For Convenience ---
     /*
     namespace AtCommandResponseLocal = XBee::AtCommandResponse;

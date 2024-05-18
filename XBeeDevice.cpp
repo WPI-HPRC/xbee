@@ -517,6 +517,113 @@ void XBeeDevice::handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t len
     _handleRemoteAtCommandResponse(frame, length_bytes, paramWasBeingWaitedOn);
 }
 
+void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
+{
+    uint8_t frameID = frame[XBee::TransmitStatus::BytesBeforeFrameID];
+    uint8_t statusCode = frame[XBee::TransmitStatus::BytesBeforeStatus];
+
+    using namespace XBee::TransmitStatus;
+    log("Transmit Status for frame ID %02x: ", (int) frameID);
+
+    switch (statusCode)
+    {
+        case Success:
+            log("Success");
+            break;
+        case NoAckReceived:
+            log("No Ack Received");
+            break;
+        case CcaFailure:
+            log("CCA Failure");
+            break;
+        case IndirectMessageUnrequested:
+            log("Indirect Message Unrequested");
+            break;
+        case TransceiverUnableToCompleteTransmission:
+            log("Transceiver Unable to Complete Transmission");
+            break;
+        case NetworkAckFailure:
+            log("Network ACK Failure");
+            break;
+        case NotJoinedToNetwork:
+            log("Not Joined to Network");
+            break;
+        case InvalidFrameValues:
+            log("Invalid Frame Values (check the phone number)");
+            break;
+        case InternalError:
+            log("Internal Error");
+            break;
+        case ResourceError:
+            log("Resource Error - lack of free buffers, timers, etc.");
+            break;
+        case NoSecureSessionConnection:
+            log("No Secure Session Connection");
+            break;
+        case EncryptionFailure:
+            log("Encryption Failure");
+            break;
+        case MessageTooLong:
+            log("Message Too Long");
+            break;
+        case SocketClosedUnexpectedly:
+            log("Socket Closed Unexpectedly");
+            break;
+        case InvalidUdpPort:
+            log("Invalid UDP Port");
+            break;
+        case InvalidTcpPort:
+            log("Invalid TCP Port");
+            break;
+        case InvalidHostAddress:
+            log("Invalid Host Address");
+            break;
+        case InvalidDataMode:
+            log("Invalid Data Mode");
+            break;
+        case InvalidInterface:
+            log("Invalid Interface");
+            break;
+        case InterfaceNotAcceptingFrames:
+            log("Interface Not Accepting Frames");
+            break;
+        case ModemUpdateInProgress:
+            log("A Modem Update is in Progress. Try again after the update is complete.");
+            break;
+        case ConnectionRefused:
+            log("Connection Refused");
+            break;
+        case SocketConnectionLost:
+            log("Socket Connection Lost");
+            break;
+        case NoServer:
+            log("No Server");
+            break;
+        case SocketClosed:
+            log("Socket Closed");
+            break;
+        case UnknownServer:
+            log("Unknown Server");
+            break;
+        case UnknownError:
+            log("Unknown Error");
+            break;
+        case InvalidTlsConfiguration:
+            log("Invalid TLS Configuration (missing file, and so forth)");
+            break;
+        case SocketNotConnected:
+            log("Socket Not Connected");
+            break;
+        case SocketNotBound:
+            log("Socket Not Bound");
+            break;
+        default:
+            log("Unknown Status Code (???)");
+            break;
+    }
+    log("\n");
+}
+
 bool XBeeDevice::handleFrame(const uint8_t *frame)
 {
     size_t index = 1; // Skip start delimiter
@@ -564,8 +671,11 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
             handleRemoteAtCommandResponse(frame, lengthHigh);
             break;
 
+        case XBee::FrameType::TransmitStatus:
+            handleTransmitStatus(frame, lengthHigh);
+            break;
         default:
-//            log("Unrecognized frame type: %02x\n", (int) (frameType & 0xFF));
+            log("Unrecognized frame type: %02x\n", (int) (frameType & 0xFF));
             break;
 
     }
