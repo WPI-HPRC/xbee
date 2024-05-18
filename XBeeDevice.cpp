@@ -685,6 +685,8 @@ void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t leng
             log("Unknown Status Code");
             break;
     }
+
+    log(". Difference in Frame ID = %d", currentFrameID - frameID);
     log("\n");
 }
 
