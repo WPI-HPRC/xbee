@@ -71,6 +71,7 @@ namespace XBee
             AtCommandResponse = 0x88,
             ModemStatus = 0x8A,
             TransmitStatus = 0x89,
+            ExtendedTransmitStatus = 0x8B,
             ReceivePacket = 0x90,
             ReceivePacket64Bit = 0x80,
             ExplicitRxIndicator = 0x91,
@@ -315,6 +316,32 @@ namespace XBee
             SocketNotConnected = 0x87,
             SocketNotBound = 0x88
         };
+    }
+
+    namespace ExtendedTransmitStatus
+    {
+        const uint8_t PacketBytes = 6; // +1 for frame type, +1 for frame ID, +1 for reserved, +1 for transmit retry count, +1 for delivery status, +1 for discovery
+        const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+
+        const uint8_t BytesBeforeFrameID = 4;
+        const uint8_t BytesBeforeRetryCount = 7;
+        const uint8_t BytesBeforeStatus = 8;
+        const uint8_t BytesBeforeDiscovery = 9;
+
+        enum StatusCode
+        {
+            Success = 0x00,
+            MacAckFailure = 0x01,
+            CcaLbtFailure = 0x02,
+            IndirectMessageUnrequestedNoSpectrum = 0x03,
+            NetworkAckFailure = 0x21,
+            RouteNotFound = 0x25,
+            InternalResourceError = 0x31,
+            ResourceError = 0x32,
+            DataPayloadTooLarge = 0x74,
+            IndirectMessageUnrequested = 0x75
+        };
+
     }
 
     // --- For Convenience ---

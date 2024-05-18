@@ -88,6 +88,8 @@ private:
 
     void handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
+    void handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
+
     virtual void incorrectChecksum(uint8_t calculated, uint8_t received) = 0;
 
     virtual void didCycle() = 0;

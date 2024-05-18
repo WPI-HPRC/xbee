@@ -624,6 +624,70 @@ void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes
     log("\n");
 }
 
+void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
+{
+    uint8_t frameID = frame[XBee::ExtendedTransmitStatus::BytesBeforeFrameID];
+    uint8_t statusCode = frame[XBee::ExtendedTransmitStatus::BytesBeforeStatus];
+    uint8_t retryCount = frame[XBee::ExtendedTransmitStatus::BytesBeforeRetryCount];
+    uint8_t discovery = frame[XBee::ExtendedTransmitStatus::BytesBeforeDiscovery];
+
+    using namespace XBee::ExtendedTransmitStatus;
+    log("Extended Transmit Status for frame ID %02x. Retry count: %02d, ", (int) frameID, (int) retryCount);
+
+    switch (discovery)
+    {
+        case 0x00:
+            log("No discovery overhead");
+            break;
+        case 0x02:
+            log("Route Discovery");
+            break;
+        default:
+            log("Unknown: %02x", discovery);
+    }
+
+    log(". Status: ");
+
+
+    switch (statusCode)
+    {
+        case Success:
+            log("Success");
+            break;
+        case MacAckFailure:
+            log("MAC ACK Failure");
+            break;
+        case CcaLbtFailure:
+            log("CCA/LBT Failure");
+            break;
+        case IndirectMessageUnrequestedNoSpectrum:
+            log("Indirect Message Unrequested / No Spectrum Available");
+            break;
+        case NetworkAckFailure:
+            log("Network ACK Failure");
+            break;
+        case RouteNotFound:
+            log("Route Not Found");
+            break;
+        case InternalResourceError:
+            log("Internal Resource Error");
+            break;
+        case ResourceError:
+            log("Resource Error - Lack of Free Buffers, Timers, etc.");
+            break;
+        case DataPayloadTooLarge:
+            log("Data Payload Too Large");
+            break;
+        case IndirectMessageUnrequested:
+            log("Indirect Message Unrequested");
+            break;
+        default:
+            log("Unknown Status Code");
+            break;
+    }
+    log("\n");
+}
+
 bool XBeeDevice::handleFrame(const uint8_t *frame)
 {
     size_t index = 1; // Skip start delimiter
@@ -674,6 +738,11 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
         case XBee::FrameType::TransmitStatus:
             handleTransmitStatus(frame, lengthHigh);
             break;
+
+        case XBee::FrameType::ExtendedTransmitStatus:
+            handleExtendedTransmitStatus(frame, lengthHigh);
+            break;
+
         default:
             log("Unrecognized frame type: %02x\n", (int) (frameType & 0xFF));
             break;
