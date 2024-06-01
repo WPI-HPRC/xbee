@@ -765,11 +765,6 @@ bool XBeeDevice::receive()
     // Read the length of the frame (16 bits = 2 bytes) and place it directly after the start delimiter in our receive memory
     readBytes(&receiveFrame[1], 2);
 
-    if (receiveFrame[1] != 0x00)
-    {
-        return false;
-    }
-
     uint8_t length = receiveFrame[2];
 
     // Read the rest of the frame. The length represents the number of bytes between the length and the checksum.
