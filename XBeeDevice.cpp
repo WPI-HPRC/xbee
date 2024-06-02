@@ -5,10 +5,6 @@
 #include "XBeeDevice.h"
 #include <iostream>
 
-#define DEBUG true
-
-int goodFrameNumber = 0;
-
 uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
     uint8_t sum = 0;
@@ -523,7 +519,7 @@ void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes
     uint8_t statusCode = frame[XBee::TransmitStatus::BytesBeforeStatus];
 
     using namespace XBee::TransmitStatus;
-    log("Transmit Status for frame ID %02x: ", (int) frameID);
+    log("Transmit Status for frame ID %03x -- [%02x]: ", (int) frameID, (int) statusCode);
 
     switch (statusCode)
     {
@@ -618,7 +614,7 @@ void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes
             log("Socket Not Bound");
             break;
         default:
-            log("Unknown Status Code (???)");
+            log("Unknown Status Code");
             break;
     }
     log("\n");
