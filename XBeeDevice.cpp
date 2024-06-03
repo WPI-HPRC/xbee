@@ -210,7 +210,7 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
     transmitRequestFrame[index++] = 0xFE; // Reserved
 
     transmitRequestFrame[index++] = 0x00; // Broadcast radius
-    transmitRequestFrame[index++] = 0x00; // Transmit options. Use "TO" value (in parameters of the radio itself)
+    transmitRequestFrame[index++] = 0xC1; // Transmit options. Use "TO" value (in parameters of the radio itself)
 
     memcpy(&transmitRequestFrame[index], data, size_bytes);
 
