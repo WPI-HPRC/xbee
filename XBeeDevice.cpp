@@ -213,7 +213,6 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
     transmitRequestFrame[index++] = 0xC1; // Transmit options. Use "TO" value (in parameters of the radio itself)
 
     memcpy(&transmitRequestFrame[index], data, size_bytes);
-
     sendFrame(transmitRequestFrame, size_bytes + XBee::TransmitRequest::FrameBytes);
 }
 
@@ -236,6 +235,7 @@ void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
 
         circularQueuePush(transmitFrameQueue, tempFrame);
     }
+    sentFrame(currentFrameID - 1);
 }
 
 void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
@@ -800,6 +800,11 @@ void XBeeDevice::doCycle()
         writeBytes((const char *) tempFrame.frame, tempFrame.length_bytes);
     }
     didCycle();
+}
+
+void XBeeDevice::sentFrame(uint8_t frameID)
+{
+    // Optional to implement
 }
 
 void XBeeDevice::didCycle()

@@ -94,6 +94,8 @@ private:
 
     virtual void didCycle() = 0;
 
+    virtual void sentFrame(uint8_t frameID);
+
     void parseReceivePacket(const uint8_t *frame, uint8_t length);
 
     void parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes);
