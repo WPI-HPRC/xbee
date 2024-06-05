@@ -283,6 +283,12 @@ namespace XBee
         const uint8_t BytesBeforeFrameID = 4;
         const uint8_t BytesBeforeStatus = 5;
 
+        struct Struct
+        {
+            uint8_t frameID;
+            uint8_t deliveryStatus;
+        };
+
         enum StatusCode
         {
             Success = 0x00,
@@ -327,6 +333,15 @@ namespace XBee
         const uint8_t BytesBeforeRetryCount = 7;
         const uint8_t BytesBeforeStatus = 8;
         const uint8_t BytesBeforeDiscovery = 9;
+
+        struct Struct
+        {
+            uint8_t frameID;
+            uint16_t reserved;
+            uint8_t retryCount;
+            uint8_t deliveryStatus;
+            uint8_t discovery;
+        };
 
         enum StatusCode
         {

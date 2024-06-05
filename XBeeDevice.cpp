@@ -240,7 +240,6 @@ void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
 
 void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
 {
-    std::cout << "Parsing receive packet" << std::endl;
     uint8_t payloadLength = length_bytes -
                             XBee::ReceivePacket::PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
 
@@ -623,7 +622,6 @@ void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes
 
 void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
 {
-    return;
     uint8_t frameID = frame[XBee::ExtendedTransmitStatus::BytesBeforeFrameID];
     uint8_t statusCode = frame[XBee::ExtendedTransmitStatus::BytesBeforeStatus];
     uint8_t retryCount = frame[XBee::ExtendedTransmitStatus::BytesBeforeRetryCount];

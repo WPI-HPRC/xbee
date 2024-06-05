@@ -86,9 +86,9 @@ private:
 
     virtual void handleReceivePacket64Bit(XBee::ReceivePacket64Bit::Struct *frame) = 0;
 
-    void handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
+    virtual void handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
-    void handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
+    virtual void handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
     virtual void incorrectChecksum(uint8_t calculated, uint8_t received) = 0;
 
