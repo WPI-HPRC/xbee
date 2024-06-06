@@ -6,6 +6,7 @@
 #define HPRC_XBEEDEVICE_H
 
 #include <queue>
+#include <cstdint>
 #include "../Utility.h"
 #include "XBeeUtility.h"
 #include "CircularBuffer.hpp"
@@ -132,19 +133,28 @@ private:
     char *nodeID;
     CircularBuffer *buffer;
 protected:
-    static uint16_t getRemoteAtCommand(const uint8_t *frame);
-
-    static uint8_t getFrameID(const uint8_t *packet);
+    static uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes);
 
     static uint8_t getFrameType(const uint8_t *packet);
 
+    static uint8_t getFrameID(const uint8_t *packet);
+
+    static uint64_t getAddressBigEndian(const uint8_t *packet, size_t *index_io);
+
+    static uint64_t getAddressBigEndian(const uint8_t *packet);
+
+    static uint64_t getAddressLittleEndian(const uint8_t *packet, size_t *index_io);
+
+    static uint64_t getAddressLittleEndian(const uint8_t *packet);
+
+    static void loadAddressBigEndian(uint8_t *packet, uint64_t address, size_t *index_io);
+
+    static void loadAddressBigEndian(uint8_t *packet, uint64_t address);
+
     static uint16_t getAtCommand(const uint8_t *frame);
 
-    static uint64_t getAddress(const uint8_t *packet, int *initialIndex);
+    static uint16_t getRemoteAtCommand(const uint8_t *frame);
 
-    static uint64_t getAddress(const uint8_t *packet);
-
-    static uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes);
 };
 
 

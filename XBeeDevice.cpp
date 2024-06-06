@@ -3,7 +3,6 @@
 //
 
 #include "XBeeDevice.h"
-#include <iostream>
 
 uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
@@ -22,30 +21,78 @@ uint8_t XBeeDevice::getFrameType(const uint8_t *packet)
     return packet[3];
 }
 
-uint64_t XBeeDevice::getAddress(const uint8_t *packet, int *initialIndex)
+uint8_t XBeeDevice::getFrameID(const uint8_t *packet)
+{
+    return packet[4];
+}
+
+uint64_t XBeeDevice::getAddressBigEndian(const uint8_t *packet, size_t *index_io)
 {
     uint64_t address = 0;
 
     for (int i = 0; i < 8; i++)
     {
-        address |= ((uint64_t) packet[(*initialIndex)] << (8 * (7 - i)));
-        *initialIndex += 1;
+        address |= (uint64_t) packet[*index_io] << (8 * (7 - i));
+        (*index_io)++;
     }
 
     return address;
 }
 
-uint64_t XBeeDevice::getAddress(const uint8_t *packet)
+uint64_t XBeeDevice::getAddressBigEndian(const uint8_t *packet)
 {
     uint64_t address = 0;
-    int _ = 0;
+    size_t _ = 0;
 
-    return getAddress(packet, &_);
+    return getAddressBigEndian(packet, &_);
 }
 
-uint8_t XBeeDevice::getFrameID(const uint8_t *packet)
+uint64_t XBeeDevice::getAddressLittleEndian(const uint8_t *packet, size_t *index_io)
 {
-    return packet[4];
+    uint64_t address = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        address |= (uint64_t) packet[*index_io] << (8 * i);
+        (*index_io)++;
+    }
+
+    return address;
+}
+
+uint64_t XBeeDevice::getAddressLittleEndian(const uint8_t *packet)
+{
+    uint64_t address = 0;
+    size_t _ = 0;
+
+    return getAddressLittleEndian(packet, &_);
+}
+
+void XBeeDevice::loadAddressBigEndian(uint8_t *packet, uint64_t address, size_t *index_io)
+{
+    for (int i = 0; i < 8; i++)
+    {
+        packet[*index_io] = (address >> ((7 - i) * 8)) & 0xFF;
+        (*index_io)++;
+    }
+}
+
+void XBeeDevice::loadAddressBigEndian(uint8_t *packet, uint64_t address)
+{
+    size_t _ = 0;
+    loadAddressBigEndian(packet, address, &_);
+}
+
+uint16_t XBeeDevice::getAtCommand(const uint8_t *frame)
+{
+    return frame[XBee::AtCommandResponse::BytesBeforeCommand] << 8 |
+           frame[XBee::AtCommandResponse::BytesBeforeCommand + 1];
+}
+
+uint16_t XBeeDevice::getRemoteAtCommand(const uint8_t *frame)
+{
+    return frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand] << 8 |
+           frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand + 1];
 }
 
 XBeeDevice::XBeeDevice()
@@ -73,23 +120,14 @@ void XBeeDevice::queryParameter(uint16_t parameter)
     sendAtCommandLocal(parameter, nullptr, 0);
 }
 
-void XBeeDevice::setParameter(uint16_t parameter, const uint8_t value)
-{
-    setParameter(parameter, &value, 1);
-}
-
-void XBeeDevice::setParameter(uint16_t parameter, const uint8_t *value, size_t valueSize_bytes)
-{
-    // Could queue it, but just set it directly right now
-//    queueAtCommandLocal(parameter, value, valueSize_bytes);
-    sendAtCommandLocal(XBee::FrameType::AtCommand, parameter, value, valueSize_bytes);
-//    write();
-//    applyChanges();
-}
-
 void XBeeDevice::queryParameterRemote(uint64_t address, uint16_t parameter)
 {
     sendAtCommandRemote(address, parameter, nullptr, 0);
+}
+
+void XBeeDevice::setParameter(uint16_t parameter, const uint8_t value)
+{
+    setParameter(parameter, &value, 1);
 }
 
 void XBeeDevice::setParameterRemote(uint64_t address, uint16_t parameter, const uint8_t value)
@@ -97,46 +135,14 @@ void XBeeDevice::setParameterRemote(uint64_t address, uint16_t parameter, const 
     setParameterRemote(address, parameter, &value, 1);
 }
 
-void XBeeDevice::setParameterRemote(uint64_t address, uint16_t parameter, const uint8_t *value, size_t valueSize_bytes)
+void XBeeDevice::setParameter(uint16_t parameter, const uint8_t *value, size_t valueSize_bytes)
 {
-    // Could queue it, but just set it directly right now
-    sendAtCommandRemote(address, parameter, value, valueSize_bytes);
-//    write();
-//    applyChanges();
+    sendAtCommandLocal(XBee::FrameType::AtCommand, parameter, value, valueSize_bytes);
 }
 
-void XBeeDevice::sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16_t command, const uint8_t *commandData,
-                                     size_t commandDataSize_bytes)
+void XBeeDevice::setParameterRemote(uint64_t address, uint16_t parameter, const uint8_t *value, size_t valueSize_bytes)
 {
-    size_t index = 1;
-    size_t contentLength_bytes = XBee::RemoteAtCommandResponse::PacketBytes + commandDataSize_bytes;
-
-    transmitRequestFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
-    transmitRequestFrame[index++] = contentLength_bytes & 0xFF;
-
-    transmitRequestFrame[index++] = frameType; // Local AT Command Request
-    transmitRequestFrame[index++] = currentFrameID++; // Frame ID
-
-    for (int i = 0; i < 8; i++)
-    {
-        transmitRequestFrame[index++] = (address >> ((7 - i) * 8)) & 0xFF;
-    }
-
-    transmitRequestFrame[index++] = 0xFF; // Reserved
-    transmitRequestFrame[index++] = 0xFE; // Reserved
-
-    transmitRequestFrame[index++] = 0x01;
-
-    transmitRequestFrame[index++] = (command >> 8) & 0xFF;
-    transmitRequestFrame[index++] = command & 0xFF;
-
-    if (commandData)
-    {
-        memcpy(&transmitRequestFrame[index], commandData, commandDataSize_bytes);
-    }
-
-//    circularQueuePush(atParamConfirmationsBeingWaitedOn, command);
-    sendFrame(transmitRequestFrame, commandDataSize_bytes + XBee::RemoteAtCommandTransmit::FrameBytes);
+    sendAtCommandRemote(address, parameter, value, valueSize_bytes);
 }
 
 void XBeeDevice::sendAtCommandRemote(uint64_t address, uint16_t command, const uint8_t *commandData,
@@ -145,14 +151,9 @@ void XBeeDevice::sendAtCommandRemote(uint64_t address, uint16_t command, const u
     sendAtCommandRemote(address, XBee::FrameType::RemoteAtCommandRequest, command, commandData, commandDataSize_bytes);
 }
 
-void XBeeDevice::applyChanges()
+void XBeeDevice::sendAtCommandLocal(uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes)
 {
-    sendAtCommandLocal(XBee::AtCommand::ApplyChanges, nullptr, 0);
-}
-
-void XBeeDevice::write()
-{
-    sendAtCommandLocal(XBee::AtCommand::Write, nullptr, 0);
+    sendAtCommandLocal(XBee::FrameType::AtCommand, command, commandData, commandDataSize_bytes);
 }
 
 void XBeeDevice::queueAtCommandLocal(uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes)
@@ -180,13 +181,48 @@ void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const u
         memcpy(&atCommandFrame[index], commandData, commandDataSize_bytes);
     }
 
-//    circularQueuePush(atParamConfirmationsBeingWaitedOn, command);
     sendFrame(atCommandFrame, commandDataSize_bytes + XBee::AtCommandTransmit::FrameBytes);
 }
 
-void XBeeDevice::sendAtCommandLocal(uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes)
+void XBeeDevice::sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16_t command, const uint8_t *commandData,
+                                     size_t commandDataSize_bytes)
 {
-    sendAtCommandLocal(XBee::FrameType::AtCommand, command, commandData, commandDataSize_bytes);
+    size_t index = 1;
+    size_t contentLength_bytes = XBee::RemoteAtCommandResponse::PacketBytes + commandDataSize_bytes;
+
+    transmitRequestFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
+    transmitRequestFrame[index++] = contentLength_bytes & 0xFF;
+
+    transmitRequestFrame[index++] = frameType; // Local AT Command Request
+    transmitRequestFrame[index++] = currentFrameID++; // Frame ID
+
+    loadAddressBigEndian(transmitRequestFrame, address, &index);
+
+    transmitRequestFrame[index++] = 0xFF; // Reserved
+    transmitRequestFrame[index++] = 0xFE; // Reserved
+
+    transmitRequestFrame[index++] = 0x01;
+
+    transmitRequestFrame[index++] = (command >> 8) & 0xFF;
+    transmitRequestFrame[index++] = command & 0xFF;
+
+    if (commandData)
+    {
+        memcpy(&transmitRequestFrame[index], commandData, commandDataSize_bytes);
+    }
+
+//    circularQueuePush(atParamConfirmationsBeingWaitedOn, command);
+    sendFrame(transmitRequestFrame, commandDataSize_bytes + XBee::RemoteAtCommandTransmit::FrameBytes);
+}
+
+void XBeeDevice::applyChanges()
+{
+    sendAtCommandLocal(XBee::AtCommand::ApplyChanges, nullptr, 0);
+}
+
+void XBeeDevice::write()
+{
+    sendAtCommandLocal(XBee::AtCommand::Write, nullptr, 0);
 }
 
 void XBeeDevice::sendNodeDiscoveryCommand()
@@ -198,7 +234,8 @@ void XBeeDevice::sendNodeDiscoveryCommand()
 
 void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes)
 {
-    size_t contentLength_bytes = size_bytes + XBee::TransmitRequest::PacketBytes;
+    using namespace XBee::TransmitRequest;
+    size_t contentLength_bytes = size_bytes + PacketBytes;
     size_t index = 1; // skip first byte (start delimiter)
 
     transmitRequestFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
@@ -207,31 +244,26 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
     transmitRequestFrame[index++] = 0x10; // Transmit Request
     transmitRequestFrame[index++] = currentFrameID++; // Frame ID
 
-    for (int i = 0; i < 8; i++)
-    {
-        transmitRequestFrame[index++] = (address >> ((7 - i) * 8)) & 0xFF;
-    }
+    loadAddressBigEndian(transmitRequestFrame, address, &index);
 
     transmitRequestFrame[index++] = 0xFF; // Reserved
     transmitRequestFrame[index++] = 0xFE; // Reserved
 
     transmitRequestFrame[index++] = 0x00; // Broadcast radius
-    transmitRequestFrame[index++] = 0xC1; // Transmit options. Use "TO" value (in parameters of the radio itself)
+    transmitRequestFrame[index++] = 0xC1; // Transmit options
 
     memcpy(&transmitRequestFrame[index], data, size_bytes);
-    sendFrame(transmitRequestFrame, size_bytes + XBee::TransmitRequest::FrameBytes);
+    sendFrame(transmitRequestFrame, size_bytes + FrameBytes);
 }
 
 void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
 {
     frame[0] = 0x7E; // Start delimiter;
 
-    uint8_t checksum = calcChecksum(frame, size_bytes - XBee::FrameBytes);
-    frame[size_bytes - 1] = checksum;
+    frame[size_bytes - 1] = calcChecksum(frame, size_bytes - XBee::FrameBytes);
 
-    if (sendFramesImmediately ||
-        (getFrameType(frame) == XBee::FrameType::TransmitRequest && sendTransmitRequestsImmediately) ||
-        sendNextFrameImmediately)
+    if (sendFramesImmediately || sendNextFrameImmediately ||
+        (getFrameType(frame) == XBee::FrameType::TransmitRequest && sendTransmitRequestsImmediately))
     {
         sendNextFrameImmediately = false;
         writeBytes((const char *) frame, size_bytes);
@@ -248,38 +280,27 @@ void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
 
 void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
 {
-    uint8_t payloadLength = length_bytes -
-                            XBee::ReceivePacket::PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
+    using namespace XBee::ReceivePacket;
 
-    uint64_t addr = 0;
+    uint8_t payloadLength =
+            length_bytes - PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
 
-    uint8_t index = XBee::ReceivePacket::BytesBeforeAddress;
-
-    for (int i = 0; i < 8; i++)
-    {
-        addr = addr | (frame[index++] << 8 * i);
-    }
+    uint64_t addr = getAddressLittleEndian(&frame[BytesBeforeAddress]);
 
     receivePacketStruct->dataLength_bytes = payloadLength;
     receivePacketStruct->senderAddress = addr;
-    receivePacketStruct->data = &frame[XBee::ReceivePacket::BytesBeforePayload];
+    receivePacketStruct->data = &frame[BytesBeforePayload];
 
     handleReceivePacket(receivePacketStruct);
 }
 
 void XBeeDevice::parseExplicitReceivePacket(const uint8_t *frame, uint8_t length_bytes)
 {
-    uint8_t payloadLength = length_bytes -
-                            XBee::ExplicitRxIndicator::PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
+    using namespace XBee::ExplicitRxIndicator;
+    uint8_t payloadLength =
+            length_bytes - PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
 
-    uint64_t addr = 0;
-
-    uint8_t index = XBee::ExplicitRxIndicator::BytesBeforeAddress;
-
-    for (int i = 0; i < 8; i++)
-    {
-        addr = addr | (frame[index++] << 8 * i);
-    }
+    uint64_t addr = getAddressLittleEndian(&frame[BytesBeforeAddress]);
 
     receivePacketStruct->dataLength_bytes = payloadLength;
     receivePacketStruct->senderAddress = addr;
@@ -290,17 +311,11 @@ void XBeeDevice::parseExplicitReceivePacket(const uint8_t *frame, uint8_t length
 
 void XBeeDevice::parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes)
 {
-    uint8_t payloadLength = length_bytes -
-                            XBee::ReceivePacket64Bit::PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
+    using namespace XBee::ReceivePacket64Bit;
+    uint8_t payloadLength =
+            length_bytes - PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
 
-    uint64_t addr = 0;
-
-    uint8_t index = XBee::ReceivePacket64Bit::BytesBeforeAddress;
-
-    for (int i = 0; i < 8; i++)
-    {
-        addr = addr | (frame[index++] << 8 * i);
-    }
+    uint64_t addr = getAddressLittleEndian(&frame[BytesBeforeAddress]);
 
     receivePacket64BitStruct->dataLength_bytes = payloadLength;
     receivePacket64BitStruct->senderAddress = addr;
@@ -308,18 +323,6 @@ void XBeeDevice::parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_by
     receivePacket64BitStruct->negativeRssi = frame[XBee::ReceivePacket64Bit::BytesBeforeRssi];
 
     handleReceivePacket64Bit(receivePacket64BitStruct);
-}
-
-uint16_t XBeeDevice::getAtCommand(const uint8_t *frame)
-{
-    return frame[XBee::AtCommandResponse::BytesBeforeCommand] << 8 |
-           frame[XBee::AtCommandResponse::BytesBeforeCommand + 1];
-}
-
-uint16_t XBeeDevice::getRemoteAtCommand(const uint8_t *frame)
-{
-    return frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand] << 8 |
-           frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand + 1];
 }
 
 void XBeeDevice::remoteDeviceDiscovered(XBee::RemoteDevice *device)
@@ -334,25 +337,11 @@ void XBeeDevice::remoteDeviceDiscovered(XBee::RemoteDevice *device)
 
 void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t length_bytes)
 {
-
-    XBee::RemoteDevice *device = new XBee::RemoteDevice;
+    auto *device = new XBee::RemoteDevice;
 
     size_t index = XBee::AtCommandResponse::BytesBeforeCommandData + 2; // Add two to skip the MY parameter
 
-    uint32_t serialHigh = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        serialHigh = serialHigh | (frame[index++] << 8 * (7 - i));
-    }
-
-    uint32_t serialLow = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        serialLow = serialLow | (frame[index++] << 8 * (7 - i));
-    }
-
-    device->serialNumber = serialHigh;
-    device->serialNumber = device->serialNumber << 32 | serialLow;
+    device->serialNumber = getAddressBigEndian(frame, &index);
 
     int iDLength = 0;
 
@@ -454,7 +443,7 @@ void XBeeDevice::_handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t le
 
     uint16_t command = getRemoteAtCommand(frame);
 
-    uint64_t address = getAddress(&frame[XBee::RemoteAtCommandResponse::BytesBeforeAddress]);
+    uint64_t address = getAddressBigEndian(&frame[XBee::RemoteAtCommandResponse::BytesBeforeAddress]);
 
     log("Remote AT response from %016llx: ", (unsigned long long) address);
     log("%c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
@@ -613,28 +602,14 @@ void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes
 
 void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
 {
-    uint8_t frameID = frame[XBee::ExtendedTransmitStatus::BytesBeforeFrameID];
-    uint8_t statusCode = frame[XBee::ExtendedTransmitStatus::BytesBeforeStatus];
-    uint8_t retryCount = frame[XBee::ExtendedTransmitStatus::BytesBeforeRetryCount];
-    uint8_t discovery = frame[XBee::ExtendedTransmitStatus::BytesBeforeDiscovery];
-
     using namespace XBee::ExtendedTransmitStatus;
-    log("Extended Transmit Status for frame ID %02x. Retry count: %02d, ", (int) frameID, (int) retryCount);
 
-    switch (discovery)
-    {
-        case 0x00:
-            log("No discovery overhead");
-            break;
-        case 0x02:
-            log("Route Discovery");
-            break;
-        default:
-            log("Unknown: %02x", discovery);
-    }
+    uint8_t frameID = frame[BytesBeforeFrameID];
+    uint8_t statusCode = frame[BytesBeforeStatus];
+    uint8_t retryCount = frame[BytesBeforeRetryCount];
+    uint8_t discovery = frame[BytesBeforeDiscovery];
 
-    log(". Status: ");
-
+    log("Extended Transmit Status for frame ID %03x -- [%02x]: ", (int) frameID, (int) statusCode);
 
     switch (statusCode)
     {
@@ -673,8 +648,23 @@ void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t leng
             break;
     }
 
-    log(". Difference in Frame ID = %d", currentFrameID - frameID);
-    log("\n");
+    log(". Discovery: ");
+
+    switch (discovery)
+    {
+        case 0x00:
+            log("No discovery overhead");
+            break;
+        case 0x02:
+            log("Route Discovery");
+            break;
+        default:
+            log("Unknown: %02x", discovery);
+    }
+
+    log("Retries: %d", (int) retryCount);
+
+    log(". Difference in Frame ID = %d\n", currentFrameID - frameID);
 }
 
 bool XBeeDevice::handleFrame(const uint8_t *frame)
@@ -762,6 +752,7 @@ bool XBeeDevice::receive()
 
     handleFrame(receiveFrame);
 
+    // Set the first byte to zero so we know the packet has been read
     receiveFrame[0] = 0;
 
     return true;
