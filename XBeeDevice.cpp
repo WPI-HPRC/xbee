@@ -60,6 +60,9 @@ XBeeDevice::XBeeDevice()
     transmitFrameQueue = circularQueueCreate<XBee::BasicFrame>(16);
 
     currentFrameID = 1;
+
+    // Default value
+    apiOptions = XBee::ApiOptions::ApiWithoutEscapes;
 }
 
 void XBeeDevice::queryParameter(uint16_t parameter)
