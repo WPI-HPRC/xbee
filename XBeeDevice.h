@@ -76,9 +76,9 @@ private:
 
     virtual void packetRead() = 0;
 
-    virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
+    virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
-    virtual void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes, bool paramWasBeingWaitedOn);
+    virtual void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
     virtual void remoteDeviceDiscovered(XBee::RemoteDevice *device);
 
@@ -115,11 +115,15 @@ private:
 
     uint8_t currentFrameID;
 
-    CircularQueue<XBee::BasicFrame> *transmitFrameQueue;
+    CircularQueue<XBee::BasicFrame> *frameQueue;
 
     XBee::BasicFrame tempFrame{};
 
-    CircularQueue<uint16_t> *atParamConfirmationsBeingWaitedOn;
+    bool waitingOnAtCommandResponse = false;
+    bool waitingOnTransmitStatus = false;
+
+    bool sendNextFrameImmediately = false;
+    bool dontWaitOnNextFrame = false;
 
     XBee::ReceivePacket::Struct *receivePacketStruct = new XBee::ReceivePacket::Struct;
     XBee::ReceivePacket64Bit::Struct *receivePacket64BitStruct = new XBee::ReceivePacket64Bit::Struct;
@@ -129,6 +133,8 @@ private:
     CircularBuffer *buffer;
 protected:
     static uint16_t getRemoteAtCommand(const uint8_t *frame);
+
+    static uint8_t getFrameID(const uint8_t *packet);
 
     static uint8_t getFrameType(const uint8_t *packet);
 
