@@ -334,6 +334,7 @@ namespace XBee
         const uint8_t BytesBeforeStatus = 8;
         const uint8_t BytesBeforeDiscovery = 9;
 
+#pragma pack(push, 1)
         struct Struct
         {
             uint8_t frameID;
@@ -342,6 +343,7 @@ namespace XBee
             uint8_t deliveryStatus;
             uint8_t discovery;
         };
+#pragma pack(pop)
 
         enum StatusCode
         {

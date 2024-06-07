@@ -87,13 +87,13 @@ private:
 
     virtual void handleReceivePacket64Bit(XBee::ReceivePacket64Bit::Struct *frame) = 0;
 
-    virtual void handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
+    virtual void _handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes) = 0;
 
-    virtual void handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
+    virtual void handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
     virtual void incorrectChecksum(uint8_t calculated, uint8_t received) = 0;
 
-    virtual void didCycle() = 0;
+    virtual void didCycle();
 
     virtual void sentFrame(uint8_t frameID);
 
@@ -110,6 +110,8 @@ private:
     void handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
 
     void handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t length_bytes);
+
+    void handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
     uint8_t *transmitRequestFrame;
     uint8_t *atCommandFrame;

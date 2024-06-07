@@ -662,9 +662,9 @@ void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t leng
             log("Unknown: %02x", discovery);
     }
 
-    log("Retries: %d", (int) retryCount);
+    log(". Retries: %d\n", (int) retryCount);
 
-    log(". Difference in Frame ID = %d\n", currentFrameID - frameID);
+    _handleExtendedTransmitStatus(frame, length_bytes);
 }
 
 bool XBeeDevice::handleFrame(const uint8_t *frame)
