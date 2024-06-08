@@ -3,6 +3,7 @@
 //
 
 #include "XBeeDevice.h"
+#include <iostream>
 
 uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
@@ -242,6 +243,7 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
     transmitRequestFrame[index++] = contentLength_bytes & 0xFF;
 
     transmitRequestFrame[index++] = 0x10; // Transmit Request
+    currentFrameID = currentFrameID == 0 ? 1 : currentFrameID;
     transmitRequestFrame[index++] = currentFrameID++; // Frame ID
 
     loadAddressBigEndian(transmitRequestFrame, address, &index);
@@ -771,8 +773,8 @@ void XBeeDevice::doCycle()
 
     while (true)
     {
-        if (!waitingOnAtCommandResponse ||
-            !waitingOnTransmitStatus || isCircularQueueEmpty(frameQueue))
+        if (waitingOnAtCommandResponse ||
+            waitingOnTransmitStatus || isCircularQueueEmpty(frameQueue))
         {
             break;
         }
@@ -791,7 +793,7 @@ void XBeeDevice::doCycle()
             }
             else if (frameType == XBee::FrameType::TransmitRequest && getFrameID(tempFrame.frame) != 0)
             {
-                waitingOnTransmitStatus = true;
+                std::cout << "Waiting on transmit status" << std::endl;
             }
         }
         writeBytes((const char *) tempFrame.frame, tempFrame.length_bytes);
