@@ -2,18 +2,18 @@
 // Created by William Scheirey on 3/15/24.
 //
 
+#ifndef HPRC_XBEEUTILITY_H
+#define HPRC_XBEEUTILITY_H
+
 #include <cstdint>
 #include <cstddef>
 
 #define AsciiToUint16(x, y)((uint16_t)x << 8 | y)
 
-#ifndef HPRC_XBEEUTILITY_H
-#define HPRC_XBEEUTILITY_H
-
 /*
  * XBee namespace with constants for utility.
  *
- * NOTE: PacketBytes and FrameBytes fields represent the *minimum* number of bytes for their respective fields
+ * NOTE: PacketBytes and FrameBytes fields represent the minimum number of bytes for their respective fields
  *
  * Info from:
  * https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf

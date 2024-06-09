@@ -5,6 +5,9 @@
 #ifndef HPRC_CIRCULARQUEUE_HPP
 #define HPRC_CIRCULARQUEUE_HPP
 
+#include <cstdlib>
+#include <string>
+
 template<typename T>
 
 struct CircularQueue

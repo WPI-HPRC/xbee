@@ -3,7 +3,7 @@
 //
 
 #include "XBeeDevice.h"
-#include <iostream>
+#include <string>
 
 uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
@@ -808,10 +808,6 @@ void XBeeDevice::doCycle()
             if (frameType == XBee::FrameType::AtCommandQueueParameterValue || frameType == XBee::FrameType::AtCommand)
             {
                 waitingOnAtCommandResponse = true;
-            }
-            else if (frameType == XBee::FrameType::TransmitRequest && getFrameID(tempFrame.frame) != 0)
-            {
-                std::cout << "Waiting on transmit status" << std::endl;
             }
         }
         writeBytes((const char *) tempFrame.frame, tempFrame.length_bytes);

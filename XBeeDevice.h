@@ -5,14 +5,8 @@
 #ifndef HPRC_XBEEDEVICE_H
 #define HPRC_XBEEDEVICE_H
 
-#include <queue>
-#include <cstdint>
-#include "../Utility.h"
 #include "XBeeUtility.h"
-#include "CircularBuffer.hpp"
 #include "circularQueue.hpp"
-
-#define BUFFER_LENGTH 2048
 
 class XBeeDevice
 {
