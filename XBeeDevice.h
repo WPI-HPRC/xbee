@@ -68,6 +68,8 @@ public:
 
     bool logWrongChecksums = true;
 
+    bool logTransmitStatus = false;
+
     XBee::ApiOptions::ApiOptions apiOptions;
 
 private:
@@ -133,7 +135,7 @@ private:
 
     uint8_t *receiveFrame;
     char *nodeID;
-    CircularBuffer *buffer;
+
 protected:
     static uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes);
 

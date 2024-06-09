@@ -106,8 +106,6 @@ XBeeDevice::XBeeDevice()
 
     nodeID = new char[20];
 
-    buffer = circularBufferCreate(BUFFER_LENGTH, XBee::MaxFrameBytes);
-
     frameQueue = circularQueueCreate<XBee::BasicFrame>(255);
 
     currentFrameID = 1;
@@ -165,8 +163,10 @@ void XBeeDevice::queueAtCommandLocal(uint16_t command, const uint8_t *commandDat
 void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const uint8_t *commandData,
                                     size_t commandDataSize_bytes)
 {
+    using namespace XBee::AtCommandTransmit;
+
     size_t index = 1;
-    size_t contentLength_bytes = XBee::AtCommandTransmit::PacketBytes + commandDataSize_bytes;
+    size_t contentLength_bytes = PacketBytes + commandDataSize_bytes;
 
     atCommandFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
     atCommandFrame[index++] = contentLength_bytes & 0xFF;
@@ -182,14 +182,16 @@ void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const u
         memcpy(&atCommandFrame[index], commandData, commandDataSize_bytes);
     }
 
-    sendFrame(atCommandFrame, commandDataSize_bytes + XBee::AtCommandTransmit::FrameBytes);
+    sendFrame(atCommandFrame, commandDataSize_bytes + FrameBytes);
 }
 
 void XBeeDevice::sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16_t command, const uint8_t *commandData,
                                      size_t commandDataSize_bytes)
 {
+    using namespace XBee::RemoteAtCommandTransmit;
+
     size_t index = 1;
-    size_t contentLength_bytes = XBee::RemoteAtCommandResponse::PacketBytes + commandDataSize_bytes;
+    size_t contentLength_bytes = PacketBytes + commandDataSize_bytes;
 
     transmitRequestFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
     transmitRequestFrame[index++] = contentLength_bytes & 0xFF;
@@ -212,8 +214,7 @@ void XBeeDevice::sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16
         memcpy(&transmitRequestFrame[index], commandData, commandDataSize_bytes);
     }
 
-//    circularQueuePush(atParamConfirmationsBeingWaitedOn, command);
-    sendFrame(transmitRequestFrame, commandDataSize_bytes + XBee::RemoteAtCommandTransmit::FrameBytes);
+    sendFrame(transmitRequestFrame, commandDataSize_bytes + FrameBytes);
 }
 
 void XBeeDevice::applyChanges()
@@ -236,6 +237,7 @@ void XBeeDevice::sendNodeDiscoveryCommand()
 void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes)
 {
     using namespace XBee::TransmitRequest;
+
     size_t contentLength_bytes = size_bytes + PacketBytes;
     size_t index = 1; // skip first byte (start delimiter)
 
@@ -299,6 +301,7 @@ void XBeeDevice::parseReceivePacket(const uint8_t *frame, uint8_t length_bytes)
 void XBeeDevice::parseExplicitReceivePacket(const uint8_t *frame, uint8_t length_bytes)
 {
     using namespace XBee::ExplicitRxIndicator;
+
     uint8_t payloadLength =
             length_bytes - PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
 
@@ -314,6 +317,7 @@ void XBeeDevice::parseExplicitReceivePacket(const uint8_t *frame, uint8_t length
 void XBeeDevice::parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes)
 {
     using namespace XBee::ReceivePacket64Bit;
+
     uint8_t payloadLength =
             length_bytes - PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
 
@@ -381,14 +385,15 @@ void XBeeDevice::handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t lengt
 void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
 {
     // This function is marked virtual but is optional to override
+    using namespace XBee::AtCommandResponse;
 
     uint16_t command = getAtCommand(frame);
 
     log("AT command response for %c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
 
-    for (uint8_t i = 0; i < length_bytes - XBee::AtCommandResponse::PacketBytes; i++)
+    for (uint8_t i = 0; i < length_bytes - PacketBytes; i++)
     {
-        log("%d ", (int) (frame[XBee::AtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
+        log("%d ", (int) (frame[BytesBeforeCommandData + i] & 0xFF));
     }
 
     log("\n");
@@ -396,7 +401,9 @@ void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_b
 
 void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
 {
-    uint8_t commandStatus = frame[XBee::AtCommandResponse::BytesBeforeCommandStatus];
+    using namespace XBee::AtCommandResponse;
+
+    uint8_t commandStatus = frame[BytesBeforeCommandStatus];
 
     uint16_t command = getAtCommand(frame);
 
@@ -420,7 +427,7 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
         }
         return;
     }
-    else if (length_bytes == XBee::AtCommandResponse::PacketBytes)
+    else if (length_bytes == PacketBytes)
     {
         log("AT command response for %c%c: OK\n", (command & 0xFF00) >> 8, command & 0x00FF);
         return;
@@ -442,16 +449,17 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
 void XBeeDevice::_handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
 {
     // This function is marked virtual but is optional to override
+    using namespace XBee::RemoteAtCommandResponse;
 
     uint16_t command = getRemoteAtCommand(frame);
 
-    uint64_t address = getAddressBigEndian(&frame[XBee::RemoteAtCommandResponse::BytesBeforeAddress]);
+    uint64_t address = getAddressBigEndian(&frame[BytesBeforeAddress]);
 
     log("Remote AT response from %016llx: ", (unsigned long long) address);
     log("%c%c: ", (command & 0xFF00) >> 8, command & 0x00FF);
-    for (uint8_t i = 0; i < length_bytes - XBee::RemoteAtCommandResponse::PacketBytes; i++)
+    for (uint8_t i = 0; i < length_bytes - PacketBytes; i++)
     {
-        log("%02x ", (int) (frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandData + i] & 0xFF));
+        log("%02x ", (int) (frame[BytesBeforeCommandData + i] & 0xFF));
     }
 
     log("\n");
@@ -459,7 +467,9 @@ void XBeeDevice::_handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t le
 
 void XBeeDevice::handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
 {
-    uint8_t commandStatus = frame[XBee::RemoteAtCommandResponse::BytesBeforeCommandStatus];
+    using namespace XBee::RemoteAtCommandResponse;
+
+    uint8_t commandStatus = frame[BytesBeforeCommandStatus];
 
     uint16_t command = getRemoteAtCommand(frame);
 
@@ -486,7 +496,7 @@ void XBeeDevice::handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t len
         }
         return;
     }
-    else if (length_bytes == XBee::RemoteAtCommandResponse::PacketBytes)
+    else if (length_bytes == PacketBytes)
     {
         log("AT command response for %c%c: OK\n", (command & 0xFF00) >> 8, command & 0x00FF);
         return;
@@ -497,109 +507,113 @@ void XBeeDevice::handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t len
 
 void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
 {
-    uint8_t frameID = frame[XBee::TransmitStatus::BytesBeforeFrameID];
-    uint8_t statusCode = frame[XBee::TransmitStatus::BytesBeforeStatus];
-
     using namespace XBee::TransmitStatus;
-    log("Transmit Status for frame ID %03x -- [%02x]: ", (int) frameID, (int) statusCode);
 
-    switch (statusCode)
+    uint8_t frameID = frame[BytesBeforeFrameID];
+    uint8_t statusCode = frame[BytesBeforeStatus];
+
+    if (logTransmitStatus)
     {
-        case Success:
-            log("Success");
-            break;
-        case NoAckReceived:
-            log("No Ack Received");
-            break;
-        case CcaFailure:
-            log("CCA Failure");
-            break;
-        case IndirectMessageUnrequested:
-            log("Indirect Message Unrequested");
-            break;
-        case TransceiverUnableToCompleteTransmission:
-            log("Transceiver Unable to Complete Transmission");
-            break;
-        case NetworkAckFailure:
-            log("Network ACK Failure");
-            break;
-        case NotJoinedToNetwork:
-            log("Not Joined to Network");
-            break;
-        case InvalidFrameValues:
-            log("Invalid Frame Values (check the phone number)");
-            break;
-        case InternalError:
-            log("Internal Error");
-            break;
-        case ResourceError:
-            log("Resource Error - lack of free buffers, timers, etc.");
-            break;
-        case NoSecureSessionConnection:
-            log("No Secure Session Connection");
-            break;
-        case EncryptionFailure:
-            log("Encryption Failure");
-            break;
-        case MessageTooLong:
-            log("Message Too Long");
-            break;
-        case SocketClosedUnexpectedly:
-            log("Socket Closed Unexpectedly");
-            break;
-        case InvalidUdpPort:
-            log("Invalid UDP Port");
-            break;
-        case InvalidTcpPort:
-            log("Invalid TCP Port");
-            break;
-        case InvalidHostAddress:
-            log("Invalid Host Address");
-            break;
-        case InvalidDataMode:
-            log("Invalid Data Mode");
-            break;
-        case InvalidInterface:
-            log("Invalid Interface");
-            break;
-        case InterfaceNotAcceptingFrames:
-            log("Interface Not Accepting Frames");
-            break;
-        case ModemUpdateInProgress:
-            log("A Modem Update is in Progress. Try again after the update is complete.");
-            break;
-        case ConnectionRefused:
-            log("Connection Refused");
-            break;
-        case SocketConnectionLost:
-            log("Socket Connection Lost");
-            break;
-        case NoServer:
-            log("No Server");
-            break;
-        case SocketClosed:
-            log("Socket Closed");
-            break;
-        case UnknownServer:
-            log("Unknown Server");
-            break;
-        case UnknownError:
-            log("Unknown Error");
-            break;
-        case InvalidTlsConfiguration:
-            log("Invalid TLS Configuration (missing file, and so forth)");
-            break;
-        case SocketNotConnected:
-            log("Socket Not Connected");
-            break;
-        case SocketNotBound:
-            log("Socket Not Bound");
-            break;
-        default:
-            log("Unknown Status Code");
-            break;
+        log("Transmit Status for frame ID %03x -- [%02x]: ", (int) frameID, (int) statusCode);
+
+        switch (statusCode)
+        {
+            case Success:
+                log("Success");
+                break;
+            case NoAckReceived:
+                log("No Ack Received");
+                break;
+            case CcaFailure:
+                log("CCA Failure");
+                break;
+            case IndirectMessageUnrequested:
+                log("Indirect Message Unrequested");
+                break;
+            case TransceiverUnableToCompleteTransmission:
+                log("Transceiver Unable to Complete Transmission");
+                break;
+            case NetworkAckFailure:
+                log("Network ACK Failure");
+                break;
+            case NotJoinedToNetwork:
+                log("Not Joined to Network");
+                break;
+            case InvalidFrameValues:
+                log("Invalid Frame Values (check the phone number)");
+                break;
+            case InternalError:
+                log("Internal Error");
+                break;
+            case ResourceError:
+                log("Resource Error - lack of free buffers, timers, etc.");
+                break;
+            case NoSecureSessionConnection:
+                log("No Secure Session Connection");
+                break;
+            case EncryptionFailure:
+                log("Encryption Failure");
+                break;
+            case MessageTooLong:
+                log("Message Too Long");
+                break;
+            case SocketClosedUnexpectedly:
+                log("Socket Closed Unexpectedly");
+                break;
+            case InvalidUdpPort:
+                log("Invalid UDP Port");
+                break;
+            case InvalidTcpPort:
+                log("Invalid TCP Port");
+                break;
+            case InvalidHostAddress:
+                log("Invalid Host Address");
+                break;
+            case InvalidDataMode:
+                log("Invalid Data Mode");
+                break;
+            case InvalidInterface:
+                log("Invalid Interface");
+                break;
+            case InterfaceNotAcceptingFrames:
+                log("Interface Not Accepting Frames");
+                break;
+            case ModemUpdateInProgress:
+                log("A Modem Update is in Progress. Try again after the update is complete.");
+                break;
+            case ConnectionRefused:
+                log("Connection Refused");
+                break;
+            case SocketConnectionLost:
+                log("Socket Connection Lost");
+                break;
+            case NoServer:
+                log("No Server");
+                break;
+            case SocketClosed:
+                log("Socket Closed");
+                break;
+            case UnknownServer:
+                log("Unknown Server");
+                break;
+            case UnknownError:
+                log("Unknown Error");
+                break;
+            case InvalidTlsConfiguration:
+                log("Invalid TLS Configuration (missing file, and so forth)");
+                break;
+            case SocketNotConnected:
+                log("Socket Not Connected");
+                break;
+            case SocketNotBound:
+                log("Socket Not Bound");
+                break;
+            default:
+                log("Unknown Status Code");
+                break;
+        }
+        log("\n");
     }
-    log("\n");
 }
 
 void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
@@ -611,60 +625,63 @@ void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t leng
     uint8_t retryCount = frame[BytesBeforeRetryCount];
     uint8_t discovery = frame[BytesBeforeDiscovery];
 
-    log("Extended Transmit Status for frame ID %03x -- [%02x]: ", (int) frameID, (int) statusCode);
-
-    switch (statusCode)
+    if (logTransmitStatus)
     {
-        case Success:
-            log("Success");
-            break;
-        case MacAckFailure:
-            log("MAC ACK Failure");
-            break;
-        case CcaLbtFailure:
-            log("CCA/LBT Failure");
-            break;
-        case IndirectMessageUnrequestedNoSpectrum:
-            log("Indirect Message Unrequested / No Spectrum Available");
-            break;
-        case NetworkAckFailure:
-            log("Network ACK Failure");
-            break;
-        case RouteNotFound:
-            log("Route Not Found");
-            break;
-        case InternalResourceError:
-            log("Internal Resource Error");
-            break;
-        case ResourceError:
-            log("Resource Error - Lack of Free Buffers, Timers, etc.");
-            break;
-        case DataPayloadTooLarge:
-            log("Data Payload Too Large");
-            break;
-        case IndirectMessageUnrequested:
-            log("Indirect Message Unrequested");
-            break;
-        default:
-            log("Unknown Status Code");
-            break;
+        log("Extended Transmit Status for frame ID %03x -- [%02x]: ", (int) frameID, (int) statusCode);
+
+        switch (statusCode)
+        {
+            case Success:
+                log("Success");
+                break;
+            case MacAckFailure:
+                log("MAC ACK Failure");
+                break;
+            case CcaLbtFailure:
+                log("CCA/LBT Failure");
+                break;
+            case IndirectMessageUnrequestedNoSpectrum:
+                log("Indirect Message Unrequested / No Spectrum Available");
+                break;
+            case NetworkAckFailure:
+                log("Network ACK Failure");
+                break;
+            case RouteNotFound:
+                log("Route Not Found");
+                break;
+            case InternalResourceError:
+                log("Internal Resource Error");
+                break;
+            case ResourceError:
+                log("Resource Error - Lack of Free Buffers, Timers, etc.");
+                break;
+            case DataPayloadTooLarge:
+                log("Data Payload Too Large");
+                break;
+            case IndirectMessageUnrequested:
+                log("Indirect Message Unrequested");
+                break;
+            default:
+                log("Unknown Status Code");
+                break;
+        }
+
+        log(". Discovery: ");
+
+        switch (discovery)
+        {
+            case 0x00:
+                log("No discovery overhead");
+                break;
+            case 0x02:
+                log("Route Discovery");
+                break;
+            default:
+                log("Unknown: %02x", discovery);
+        }
+
+        log(". Retries: %d\n", (int) retryCount);
     }
-
-    log(". Discovery: ");
-
-    switch (discovery)
-    {
-        case 0x00:
-            log("No discovery overhead");
-            break;
-        case 0x02:
-            log("Route Discovery");
-            break;
-        default:
-            log("Unknown: %02x", discovery);
-    }
-
-    log(". Retries: %d\n", (int) retryCount);
 
     _handleExtendedTransmitStatus(frame, length_bytes);
 }
@@ -696,33 +713,34 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
     switch (frameType)
     {
-        case XBee::FrameType::ReceivePacket:
+        using namespace XBee::FrameType;
+        case ReceivePacket:
             parseReceivePacket(frame, lengthHigh);
             break;
 
-        case XBee::FrameType::ReceivePacket64Bit:
+        case ReceivePacket64Bit:
             parseReceivePacket64Bit(frame, lengthHigh);
             break;
 
-        case XBee::FrameType::ExplicitRxIndicator:
+        case ExplicitRxIndicator:
             parseExplicitReceivePacket(frame, lengthHigh);
             break;
 
-        case XBee::FrameType::AtCommandResponse:
+        case AtCommandResponse:
             waitingOnAtCommandResponse = false;
             handleAtCommandResponse(frame, lengthHigh);
             break;
 
-        case XBee::FrameType::RemoteAtCommandResponse:
+        case RemoteAtCommandResponse:
             handleRemoteAtCommandResponse(frame, lengthHigh);
             break;
 
-        case XBee::FrameType::TransmitStatus:
+        case TransmitStatus:
             handleTransmitStatus(frame, lengthHigh);
             waitingOnTransmitStatus = false;
             break;
 
-        case XBee::FrameType::ExtendedTransmitStatus:
+        case ExtendedTransmitStatus:
             waitingOnTransmitStatus = false;
             handleExtendedTransmitStatus(frame, lengthHigh);
             break;
