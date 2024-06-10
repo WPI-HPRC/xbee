@@ -4,6 +4,7 @@
 
 #include "XBeeDevice.h"
 #include <string>
+#include <cstring>
 
 uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
@@ -614,6 +615,11 @@ void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes
         }
         log("\n");
     }
+}
+
+void XBeeDevice::_handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
+{
+    // Optional to implement
 }
 
 void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
