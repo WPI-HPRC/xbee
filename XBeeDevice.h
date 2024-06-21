@@ -55,7 +55,7 @@ public:
     bool receive();
 
     void doCycle();
-
+    
     bool sendTransmitRequestsImmediately = false;
 
     bool sendFramesImmediately = false;
