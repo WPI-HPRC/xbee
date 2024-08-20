@@ -97,16 +97,8 @@ uint16_t XBeeDevice::getRemoteAtCommand(const uint8_t *frame)
            frame[XBee::RemoteAtCommandResponse::BytesBeforeCommand + 1];
 }
 
-XBeeDevice::XBeeDevice()
+XBeeDevice::XBeeDevice(SerialInterface serialInterface): serialInterface(serialInterface)
 {
-    receiveFrame = new uint8_t[XBee::MaxPacketBytes];
-
-    transmitRequestFrame = new uint8_t[XBee::MaxFrameBytes];
-
-    atCommandFrame = new uint8_t[XBee::MaxFrameBytes];
-
-    nodeID = new char[20];
-
     frameQueue = circularQueueCreate<XBee::BasicFrame>(255);
 
     currentFrameID = 1;
@@ -758,28 +750,62 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
     return true;
 }
 
+uint8_t XBeeDevice::readByte()
+{
+    uint8_t b;
+    readBytes(&b, 1);
+    return b;
+}
+
 bool XBeeDevice::receive()
 {
-    readBytes(receiveFrame, 1);
-
-    if (receiveFrame[0] != XBee::StartDelimiter)
-    {
+    if(!areBytesAvailable())
         return false;
+
+    if(serialInterface == UART)
+    {
+        while(areBytesAvailable() && receiveFrameBytesLeftToRead > 0)
+        {
+            uint8_t next_byte = readByte();
+            receiveFrame[receiveFrameIndex++] = next_byte;
+
+            if(receiveFrameBytesLeftToRead > 0)
+            {
+                receiveFrameBytesLeftToRead -= 1;
+
+                if(receiveFrameIndex == 3)
+                {
+                    // We need to read the number of bytes denoted by the length byte, plus 1 for the checksum
+                    receiveFrameBytesLeftToRead = receiveFrame[2] + 1;
+                }
+            }
+            else if(next_byte == XBee::StartDelimiter)
+            {
+                // We need to read 3 more bytes: +1 for start delimiter, +2 for length bytes
+                receiveFrameBytesLeftToRead = 3;
+            }
+        }
+        if(receiveFrameBytesLeftToRead == 0)
+        {
+            handleFrame(receiveFrame);
+
+            // Set the first byte to zero so we know the packet has been read
+            receiveFrame[0] = 0;
+        }
     }
+    else if(serialInterface == SPI)
+    {
+        readBytes(receiveFrame, 3);
+        uint8_t length = receiveFrame[2];
 
-    // Read the length of the frame (16 bits = 2 bytes) and place it directly after the start delimiter in our receive memory
-    readBytes(&receiveFrame[1], 2);
+        // Read the rest of the frame. The length represents the number of bytes between the length and the checksum.
+        // The second of the two length bytes holds the real length of the frame.
+        readBytes(&receiveFrame[3], length + 1);
 
-    uint8_t length = receiveFrame[2];
-
-    // Read the rest of the frame. The length represents the number of bytes between the length and the checksum.
-    // The second of the two length bytes holds the real length of the frame.
-    readBytes(&receiveFrame[3], length + 1);
-
-    handleFrame(receiveFrame);
-
-    // Set the first byte to zero so we know the packet has been read
-    receiveFrame[0] = 0;
+        // Set the first byte to zero so we know the packet has been read
+        handleFrame(receiveFrame);
+        receiveFrame[0] = 0;
+    }
 
     return true;
 }
