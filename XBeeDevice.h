@@ -75,7 +75,7 @@ public:
 private:
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
 
-    virtual bool areBytesAvailable();
+    virtual bool areBytesAvailable() = 0;
 
     virtual void readBytes(uint8_t *buffer, size_t length_bytes) = 0;
 
