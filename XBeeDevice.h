@@ -17,7 +17,7 @@ enum SerialInterface
 class XBeeDevice
 {
 public:
-    XBeeDevice(SerialInterface serialInterface);
+    explicit XBeeDevice(SerialInterface serialInterface);
 
     virtual void start() = 0;
 
@@ -109,8 +109,6 @@ private:
 
     void parseExplicitReceivePacket(const uint8_t *frame, uint8_t length_bytes);
 
-    void readFrame();
-
     bool handleFrame(const uint8_t *frame);
 
     void handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
@@ -121,8 +119,8 @@ private:
 
     void handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
-    uint8_t transmitRequestFrame[XBee::MaxFrameBytes];
-    uint8_t atCommandFrame[XBee::MaxFrameBytes];
+    uint8_t transmitRequestFrame[XBee::MaxFrameBytes]{};
+    uint8_t atCommandFrame[XBee::MaxFrameBytes]{};
 
     uint8_t currentFrameID;
 
@@ -139,13 +137,13 @@ private:
     XBee::ReceivePacket::Struct *receivePacketStruct = new XBee::ReceivePacket::Struct;
     XBee::ReceivePacket64Bit::Struct *receivePacket64BitStruct = new XBee::ReceivePacket64Bit::Struct;
 
-    uint8_t receiveFrame[XBee::MaxPacketBytes];
+    uint8_t receiveFrame[XBee::MaxPacketBytes]{};
     uint8_t receiveFrameIndex = 0;
     int receiveFrameBytesLeftToRead = 0;
 
     SerialInterface serialInterface;
 
-    char nodeID[20];
+    char nodeID[20]{};
 
 protected:
     static uint8_t calcChecksum(const uint8_t *packet, uint8_t size_bytes);

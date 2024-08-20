@@ -43,7 +43,6 @@ uint64_t XBeeDevice::getAddressBigEndian(const uint8_t *packet, size_t *index_io
 
 uint64_t XBeeDevice::getAddressBigEndian(const uint8_t *packet)
 {
-    uint64_t address = 0;
     size_t _ = 0;
 
     return getAddressBigEndian(packet, &_);
@@ -64,7 +63,6 @@ uint64_t XBeeDevice::getAddressLittleEndian(const uint8_t *packet, size_t *index
 
 uint64_t XBeeDevice::getAddressLittleEndian(const uint8_t *packet)
 {
-    uint64_t address = 0;
     size_t _ = 0;
 
     return getAddressLittleEndian(packet, &_);
