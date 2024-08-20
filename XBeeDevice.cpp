@@ -5,6 +5,8 @@
 #include "XBeeDevice.h"
 #include <string>
 #include <cstring>
+#include <iostream>
+#include <iomanip>
 
 uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
@@ -684,6 +686,14 @@ void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t leng
 
 bool XBeeDevice::handleFrame(const uint8_t *frame)
 {
+
+    std::cout << "Frame1: ";
+    for (int j = 0; j < frame[2] + 4; j++)
+    {
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int) (frame[j] & 0xFF) << " ";
+    }
+    std::cout << std::endl;
+
     size_t index = 1; // Skip start delimiter
 
     uint8_t lengthLow = frame[index++];
@@ -758,17 +768,18 @@ uint8_t XBeeDevice::readByte()
 bool XBeeDevice::receive()
 {
     if(!areBytesAvailable())
+    {
         return false;
-
+    }
     if(serialInterface == UART)
     {
-        while(areBytesAvailable() && receiveFrameBytesLeftToRead > 0)
+        while(areBytesAvailable() && receiveFrameBytesLeftToRead >= 0)
         {
             uint8_t next_byte = readByte();
-            receiveFrame[receiveFrameIndex++] = next_byte;
 
             if(receiveFrameBytesLeftToRead > 0)
             {
+                receiveFrame[receiveFrameIndex++] = next_byte;
                 receiveFrameBytesLeftToRead -= 1;
 
                 if(receiveFrameIndex == 3)
@@ -779,16 +790,20 @@ bool XBeeDevice::receive()
             }
             else if(next_byte == XBee::StartDelimiter)
             {
+                receiveFrameIndex = 0;
+                receiveFrame[receiveFrameIndex++] = next_byte;
                 // We need to read 3 more bytes: +1 for start delimiter, +2 for length bytes
                 receiveFrameBytesLeftToRead = 3;
             }
         }
+
         if(receiveFrameBytesLeftToRead == 0)
         {
             handleFrame(receiveFrame);
 
             // Set the first byte to zero so we know the packet has been read
             receiveFrame[0] = 0;
+            return true;
         }
     }
     else if(serialInterface == SPI)
@@ -803,9 +818,9 @@ bool XBeeDevice::receive()
         // Set the first byte to zero so we know the packet has been read
         handleFrame(receiveFrame);
         receiveFrame[0] = 0;
+        return true;
     }
-
-    return true;
+    return false;
 }
 
 void XBeeDevice::doCycle()
