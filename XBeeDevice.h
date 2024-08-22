@@ -5,6 +5,8 @@
 #ifndef HPRC_XBEEDEVICE_H
 #define HPRC_XBEEDEVICE_H
 
+#define UART_BUFFER_SIZE 2048
+
 #include "XBeeUtility.h"
 #include "circularQueue.hpp"
 
@@ -58,7 +60,7 @@ public:
 
     void write();
 
-    bool receive();
+    void receive();
 
     void doCycle();
     
@@ -76,6 +78,8 @@ private:
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
 
     virtual bool areBytesAvailable() = 0;
+
+    virtual size_t readBytes_uart(char *buffer, size_t max_bytes) = 0;
 
     virtual void readBytes(uint8_t *buffer, size_t length_bytes) = 0;
 
@@ -137,6 +141,7 @@ private:
     XBee::ReceivePacket::Struct *receivePacketStruct = new XBee::ReceivePacket::Struct;
     XBee::ReceivePacket64Bit::Struct *receivePacket64BitStruct = new XBee::ReceivePacket64Bit::Struct;
 
+    char uartBuffer[UART_BUFFER_SIZE]{};
     uint8_t receiveFrame[XBee::MaxPacketBytes]{};
     uint8_t receiveFrameIndex = 0;
     int receiveFrameBytesLeftToRead = 0;

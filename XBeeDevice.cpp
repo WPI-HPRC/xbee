@@ -765,18 +765,14 @@ uint8_t XBeeDevice::readByte()
     return b;
 }
 
-bool XBeeDevice::receive()
+void XBeeDevice::receive()
 {
-    if(!areBytesAvailable())
-    {
-        return false;
-    }
     if(serialInterface == UART)
     {
-        while(areBytesAvailable() && receiveFrameBytesLeftToRead >= 0)
+        size_t numBytes = readBytes_uart(uartBuffer, UART_BUFFER_SIZE);
+        for(int i = 0; i < numBytes; i++)
         {
-            uint8_t next_byte = readByte();
-
+            uint8_t next_byte = uartBuffer[i];
             if(receiveFrameBytesLeftToRead > 0)
             {
                 receiveFrame[receiveFrameIndex++] = next_byte;
@@ -787,6 +783,14 @@ bool XBeeDevice::receive()
                     // We need to read the number of bytes denoted by the length byte, plus 1 for the checksum
                     receiveFrameBytesLeftToRead = receiveFrame[2] + 1;
                 }
+
+                if(receiveFrameBytesLeftToRead == 0)
+                {
+                    handleFrame(receiveFrame);
+
+                    // Set the first byte to zero so we know the packet has been read
+                    receiveFrame[0] = 0;
+                }
             }
             else if(next_byte == XBee::StartDelimiter)
             {
@@ -795,15 +799,6 @@ bool XBeeDevice::receive()
                 // We need to read 3 more bytes: +1 for start delimiter, +2 for length bytes
                 receiveFrameBytesLeftToRead = 3;
             }
-        }
-
-        if(receiveFrameBytesLeftToRead == 0)
-        {
-            handleFrame(receiveFrame);
-
-            // Set the first byte to zero so we know the packet has been read
-            receiveFrame[0] = 0;
-            return true;
         }
     }
     else if(serialInterface == SPI)
@@ -818,19 +813,13 @@ bool XBeeDevice::receive()
         // Set the first byte to zero so we know the packet has been read
         handleFrame(receiveFrame);
         receiveFrame[0] = 0;
-        return true;
     }
-    return false;
 }
 
 void XBeeDevice::doCycle()
 {
     // First, read frames from serial
-    bool receivedPacket;
-    do
-    {
-        receivedPacket = receive();
-    } while (receivedPacket);
+    receive();
 
     // Next, send out any frames that need to be sent
 
