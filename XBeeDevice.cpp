@@ -758,13 +758,6 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
     return true;
 }
 
-uint8_t XBeeDevice::readByte()
-{
-    uint8_t b;
-    readBytes(&b, 1);
-    return b;
-}
-
 void XBeeDevice::receive()
 {
     if(serialInterface == UART)
@@ -803,6 +796,7 @@ void XBeeDevice::receive()
     }
     else if(serialInterface == SPI)
     {
+        /*
         readBytes(receiveFrame, 3);
         uint8_t length = receiveFrame[2];
 
@@ -813,6 +807,7 @@ void XBeeDevice::receive()
         // Set the first byte to zero so we know the packet has been read
         handleFrame(receiveFrame);
         receiveFrame[0] = 0;
+         */
     }
 }
 
@@ -857,4 +852,19 @@ void XBeeDevice::sentFrame(uint8_t frameID)
 void XBeeDevice::didCycle()
 {
     // Optional to implement.
+}
+
+size_t XBeeDevice::readBytes_uart(char *buffer, size_t max_bytes)
+{
+    // Optional to implement
+    return 0;
+}
+
+void XBeeDevice::readBytes_spi(uint8_t *buffer, size_t length_bytes)
+{
+
+}
+void XBeeDevice::start()
+{
+
 }

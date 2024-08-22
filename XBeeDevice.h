@@ -21,7 +21,7 @@ class XBeeDevice
 public:
     explicit XBeeDevice(SerialInterface serialInterface);
 
-    virtual void start() = 0;
+    virtual void start();
 
     virtual void log(const char *format, ...) = 0;
 
@@ -77,13 +77,9 @@ public:
 private:
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
 
-    virtual bool areBytesAvailable() = 0;
-
     virtual size_t readBytes_uart(char *buffer, size_t max_bytes) = 0;
 
-    virtual void readBytes(uint8_t *buffer, size_t length_bytes) = 0;
-
-    uint8_t readByte();
+    virtual void readBytes_spi(uint8_t *buffer, size_t length_bytes);
 
     virtual void packetRead() = 0;
 
