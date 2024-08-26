@@ -102,9 +102,6 @@ XBeeDevice::XBeeDevice(SerialInterface serialInterface): serialInterface(serialI
     frameQueue = circularQueueCreate<XBee::BasicFrame>(255);
 
     currentFrameID = 1;
-
-    // Default value
-    apiOptions = XBee::ApiOptions::ApiWithoutEscapes;
 }
 
 void XBeeDevice::queryParameter(uint16_t parameter)
@@ -215,7 +212,7 @@ void XBeeDevice::applyChanges()
     sendAtCommandLocal(XBee::AtCommand::ApplyChanges, nullptr, 0);
 }
 
-void XBeeDevice::write()
+void XBeeDevice::writeChanges()
 {
     sendAtCommandLocal(XBee::AtCommand::Write, nullptr, 0);
 }
@@ -686,14 +683,6 @@ void XBeeDevice::handleExtendedTransmitStatus(const uint8_t *frame, uint8_t leng
 
 bool XBeeDevice::handleFrame(const uint8_t *frame)
 {
-
-    std::cout << "Frame1: ";
-    for (int j = 0; j < frame[2] + 4; j++)
-    {
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int) (frame[j] & 0xFF) << " ";
-    }
-    std::cout << std::endl;
-
     size_t index = 1; // Skip start delimiter
 
     uint8_t lengthLow = frame[index++];
@@ -701,8 +690,6 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
     uint8_t calculatedChecksum = calcChecksum(frame, lengthHigh);
     uint8_t receivedChecksum = frame[lengthHigh + XBee::FrameBytes - 1];
-
-    packetRead();
 
     if (calculatedChecksum != receivedChecksum)
     {
