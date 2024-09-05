@@ -8,6 +8,13 @@
 #include <iostream>
 #include <iomanip>
 
+#include <algorithm>
+void ReverseBytes( void *start, int size )
+{
+    char *istart = static_cast<char *>(start), *iend = istart + size;
+    std::reverse(istart, iend);
+}
+
 uint8_t XBeeDevice::calcChecksum(const uint8_t *packet, uint8_t size_bytes)
 {
     uint8_t sum = 0;
@@ -158,21 +165,21 @@ void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const u
     size_t index = 1;
     size_t contentLength_bytes = PacketBytes + commandDataSize_bytes;
 
-    atCommandFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
-    atCommandFrame[index++] = contentLength_bytes & 0xFF;
+    transmitFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
+    transmitFrame[index++] = contentLength_bytes & 0xFF;
 
-    atCommandFrame[index++] = frameType; // Local AT Command Request
-    atCommandFrame[index++] = currentFrameID++; // Frame ID
+    transmitFrame[index++] = frameType; // Local AT Command Request
+    transmitFrame[index++] = currentFrameID++; // Frame ID
 
-    atCommandFrame[index++] = (command >> 8) & 0xFF;
-    atCommandFrame[index++] = command & 0xFF;
+    transmitFrame[index++] = (command >> 8) & 0xFF;
+    transmitFrame[index++] = command & 0xFF;
 
     if (commandData)
     {
-        memcpy(&atCommandFrame[index], commandData, commandDataSize_bytes);
+        memcpy(&transmitFrame[index], commandData, commandDataSize_bytes);
     }
 
-    sendFrame(atCommandFrame, commandDataSize_bytes + FrameBytes);
+    sendFrame(transmitFrame, commandDataSize_bytes + FrameBytes);
 }
 
 void XBeeDevice::sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16_t command, const uint8_t *commandData,
@@ -183,28 +190,28 @@ void XBeeDevice::sendAtCommandRemote(uint64_t address, uint8_t frameType, uint16
     size_t index = 1;
     size_t contentLength_bytes = PacketBytes + commandDataSize_bytes;
 
-    transmitRequestFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
-    transmitRequestFrame[index++] = contentLength_bytes & 0xFF;
+    transmitFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
+    transmitFrame[index++] = contentLength_bytes & 0xFF;
 
-    transmitRequestFrame[index++] = frameType; // Local AT Command Request
-    transmitRequestFrame[index++] = currentFrameID++; // Frame ID
+    transmitFrame[index++] = frameType; // Local AT Command Request
+    transmitFrame[index++] = currentFrameID++; // Frame ID
 
-    loadAddressBigEndian(transmitRequestFrame, address, &index);
+    loadAddressBigEndian(transmitFrame, address, &index);
 
-    transmitRequestFrame[index++] = 0xFF; // Reserved
-    transmitRequestFrame[index++] = 0xFE; // Reserved
+    transmitFrame[index++] = 0xFF; // Reserved
+    transmitFrame[index++] = 0xFE; // Reserved
 
-    transmitRequestFrame[index++] = 0x01;
+    transmitFrame[index++] = 0x01;
 
-    transmitRequestFrame[index++] = (command >> 8) & 0xFF;
-    transmitRequestFrame[index++] = command & 0xFF;
+    transmitFrame[index++] = (command >> 8) & 0xFF;
+    transmitFrame[index++] = command & 0xFF;
 
     if (commandData)
     {
-        memcpy(&transmitRequestFrame[index], commandData, commandDataSize_bytes);
+        memcpy(&transmitFrame[index], commandData, commandDataSize_bytes);
     }
 
-    sendFrame(transmitRequestFrame, commandDataSize_bytes + FrameBytes);
+    sendFrame(transmitFrame, commandDataSize_bytes + FrameBytes);
 }
 
 void XBeeDevice::applyChanges()
@@ -231,23 +238,115 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
     size_t contentLength_bytes = size_bytes + PacketBytes;
     size_t index = 1; // skip first byte (start delimiter)
 
-    transmitRequestFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
-    transmitRequestFrame[index++] = contentLength_bytes & 0xFF;
+    transmitFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
+    transmitFrame[index++] = contentLength_bytes & 0xFF;
 
-    transmitRequestFrame[index++] = 0x10; // Transmit Request
+    transmitFrame[index++] = 0x10; // Transmit Request
     currentFrameID = currentFrameID == 0 ? 1 : currentFrameID;
-    transmitRequestFrame[index++] = currentFrameID++; // Frame ID
+    transmitFrame[index++] = currentFrameID++; // Frame ID
 
-    loadAddressBigEndian(transmitRequestFrame, address, &index);
+    loadAddressBigEndian(transmitFrame, address, &index);
 
-    transmitRequestFrame[index++] = 0xFF; // Reserved
-    transmitRequestFrame[index++] = 0xFE; // Reserved
+    transmitFrame[index++] = 0xFF; // Reserved
+    transmitFrame[index++] = 0xFE; // Reserved
 
-    transmitRequestFrame[index++] = 0x00; // Broadcast radius
-    transmitRequestFrame[index++] = 0xC1; // Transmit options
+    transmitFrame[index++] = 0x00; // Broadcast radius
+    transmitFrame[index++] = 0xC1; // Transmit options
 
-    memcpy(&transmitRequestFrame[index], data, size_bytes);
-    sendFrame(transmitRequestFrame, size_bytes + FrameBytes);
+    memcpy(&transmitFrame[index], data, size_bytes);
+    sendFrame(transmitFrame, size_bytes + FrameBytes);
+}
+
+void XBeeDevice::sendExplicitAddressingCommand(XBee::ExplicitAddressingCommand::Struct frameInfo, uint8_t *data,
+                                               size_t dataSize_bytes)
+{
+    using namespace XBee::ExplicitAddressingCommand;
+
+    size_t contentLength_bytes = dataSize_bytes + PacketBytes;
+    size_t index = 1;
+
+    transmitFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
+    transmitFrame[index++] = contentLength_bytes & 0xFF;
+    transmitFrame[index++] = 0x11;
+    transmitFrame[index++] = 0x01;
+
+    memcpy(&transmitFrame[index], (uint8_t *)&frameInfo, sizeof(frameInfo));
+    index += sizeof(frameInfo);
+    memcpy(&transmitFrame[index], data, dataSize_bytes);
+
+    sendFrame(transmitFrame, dataSize_bytes + FrameBytes);
+}
+
+void XBeeDevice::sendLinkTestRequest(uint64_t destinationAddress, uint16_t payloadSize, uint16_t iterations)
+{
+    using namespace XBee::ExplicitAddressingCommand;
+
+    Struct frameInfo;
+    frameInfo.destinationAddress = 0x0013A200422CDAC2;
+    ReverseBytes(&frameInfo.destinationAddress, sizeof(frameInfo.destinationAddress));
+    frameInfo.reserved = 0xFFFE;
+    ReverseBytes(&frameInfo.reserved, sizeof(frameInfo.reserved));
+    frameInfo.sourceEndpoint = 0xE6;
+    ReverseBytes(&frameInfo.sourceEndpoint, sizeof(frameInfo.sourceEndpoint));
+    frameInfo.destinationEndpoint = 0xE6;
+    ReverseBytes(&frameInfo.destinationEndpoint, sizeof(frameInfo.destinationEndpoint));
+    frameInfo.clusterID = 0x0014;
+    ReverseBytes(&frameInfo.clusterID, sizeof(frameInfo.clusterID));
+    frameInfo.profileID = 0xC105;
+    ReverseBytes(&frameInfo.profileID, sizeof(frameInfo.profileID));
+    frameInfo.broadcastRadius = 0;
+    ReverseBytes(&frameInfo.broadcastRadius, sizeof(frameInfo.broadcastRadius));
+    frameInfo.transmitOptions = 0;
+    ReverseBytes(&frameInfo.transmitOptions, sizeof(frameInfo.transmitOptions));
+
+
+//            destinationAddress,
+//            0xFFFE,
+//            0xE8,
+//            0xE6,
+//            0x0014,
+//            0xC105,
+//            0,
+//            0,
+//    };
+
+/*
+ * using namespace XBee::ExplicitAddressingCommand;
+
+    uint16_t reserved = 0xFFFE;
+    uint8_t sourceEndpoint = 0xE8;
+    uint8_t destinationEndpoint = 0xE6;
+    uint16_t clusterID = 0x0014;
+    uint16_t profileID = 0xC105;
+    uint8_t broadcastRadius = 0;
+    uint8_t transmitOptions = 0;
+
+    using namespace XBee::ExplicitAddressingCommand;
+
+    size_t contentLength_bytes = sizeof(LinkTest) + PacketBytes;
+    size_t index = 1;
+
+    std::cout << "Length: " << contentLength_bytes << std::endl;
+
+    transmitFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
+    transmitFrame[index++] = contentLength_bytes & 0xFF;
+    transmitFrame[index++] = 0x11;
+    transmitFrame[index++] = 0x01;
+
+    loadAddressBigEndian(transmitFrame, destinationAddress, &index);
+ */
+
+    LinkTest linkTest = {
+            .destinationAddress = 0x0013A200423F474C,
+            .payloadSize = payloadSize,
+            .iterations = iterations
+    };
+    ReverseBytes(&linkTest.destinationAddress, sizeof(linkTest.destinationAddress));
+    ReverseBytes(&linkTest.payloadSize, sizeof(linkTest.payloadSize));
+    ReverseBytes(&linkTest.iterations, sizeof(linkTest.iterations));
+
+
+    sendExplicitAddressingCommand(frameInfo, (uint8_t *)&linkTest, sizeof(linkTest));
 }
 
 void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
@@ -292,11 +391,26 @@ void XBeeDevice::parseExplicitReceivePacket(const uint8_t *frame, uint8_t length
 {
     using namespace XBee::ExplicitRxIndicator;
 
+    auto *frameStruct = (_Struct *)&frame[3];
+    ReverseBytes(&frameStruct->clusterID, sizeof(frameStruct->clusterID));
+
+    if(frameStruct->clusterID == XBee::LinkTestClusterID)
+    {
+        auto *data = (LinkTest *)(&frame[21]);
+
+        ReverseBytes(&data->destinationAddress, sizeof(data->destinationAddress));
+        ReverseBytes(&data->success, sizeof(data->success));
+        ReverseBytes(&data->iterations, sizeof(data->iterations));
+        ReverseBytes(&data->payloadSize, sizeof(data->payloadSize));
+        ReverseBytes(&data->retries, sizeof(data->retries));
+        handleLinkTest(*data);
+        return;
+    }
+
     uint8_t payloadLength =
             length_bytes - PacketBytes; // Subtract the number of base frame bytes from the total number of frame bytes
 
     uint64_t addr = getAddressLittleEndian(&frame[BytesBeforeAddress]);
-
     receivePacketStruct->dataLength_bytes = payloadLength;
     receivePacketStruct->senderAddress = addr;
     receivePacketStruct->data = &frame[XBee::ExplicitRxIndicator::BytesBeforePayload];

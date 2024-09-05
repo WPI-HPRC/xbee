@@ -27,6 +27,8 @@ namespace XBee
     const uint8_t EscapeCharacter = 0x7D;
     const uint8_t EscapeXorByte = 0x20;
 
+    const uint16_t LinkTestClusterID = 0x0094;
+
     struct RemoteDevice
     {
         uint64_t serialNumber;
@@ -115,7 +117,8 @@ namespace XBee
             UnicastAttemptedCount = AsciiToUint16('U', 'A'),
             MacAckFailureCount = AsciiToUint16('E', 'A'),
             TransmissionFailureCount = AsciiToUint16('T', 'R'),
-            ApiOptions = AsciiToUint16('A', 'O')
+            ApiOptions = AsciiToUint16('A', 'O'),
+            InterfaceDataRate = AsciiToUint16('B', 'D')
         };
         enum CommandStatus
         {
@@ -168,6 +171,16 @@ namespace XBee
     {
         const uint8_t PacketBytes = 15; // +1 for frame type, +1 for frame ID, +8 for dest address, +2 for reserved, +1 for remote options, +2 for AT command
         const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+
+#pragma pack(push, 1)
+        struct Struct
+        {
+            uint64_t destinationAddress;
+            uint16_t reserved;
+            uint8_t remoteOptions;
+            uint16_t command;
+        };
+#pragma pack(pop)
     }
 
     namespace AtCommandQueue
@@ -180,6 +193,63 @@ namespace XBee
     {
         const uint8_t PacketBytes = 14; // +1 for frame type, +1 for frame ID, +8 for destination address, +2 for reserved, +1 for broadcast radius, +1 for transmit options
         const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+
+#pragma pack(push, 1)
+        struct Struct
+        {
+            uint64_t destinationAddress;
+            uint16_t reserved;
+            uint8_t broadcastRadius;
+            uint8_t transmitOptions;
+        };
+#pragma pack(pop)
+
+        /*
+        Struct DefaultStruct()
+        {
+            return Struct
+            {
+                .destinationAddress = 0x00,
+                .reserved = 0xFFFE,
+                .broadcastRadius = 0x00,
+                .transmitOptions = 0x00
+            };
+        }
+         */
+
+    }
+
+    namespace ExplicitAddressingCommand
+    {
+        const uint8_t PacketBytes = 20;
+        /*
+         * +1 for frame type, +1 for frame ID, +8 for destination address, +2 for reserved, +1 for source endpoint, +1 for destination endpoint,
+         * +2 for cluster ID, +2 for profile ID, +1 for broadcast radius, +1 for transmit options
+         */
+        const uint8_t FrameBytes = XBee::FrameBytes + PacketBytes;
+
+#pragma pack(push, 1)
+        struct Struct
+        {
+            uint64_t destinationAddress;
+            uint16_t reserved;
+            uint8_t sourceEndpoint;
+            uint8_t destinationEndpoint;
+            uint16_t clusterID;
+            uint16_t profileID;
+            uint8_t broadcastRadius;
+            uint8_t transmitOptions;
+        };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+        struct LinkTest
+        {
+            uint64_t destinationAddress;
+            uint16_t payloadSize;
+            uint16_t iterations;
+        };
+#pragma pack(pop)
     }
 
     // ------------- RECEIVE -------------
@@ -196,6 +266,13 @@ namespace XBee
             uint8_t dataLength_bytes;
             uint64_t senderAddress;
             const uint8_t *data;
+        };
+
+        struct _Struct
+        {
+            uint64_t senderAddress;
+            uint16_t reserved;
+            uint8_t receiveOptions;
         };
     }
 
@@ -236,6 +313,35 @@ namespace XBee
             uint64_t senderAddress;
             const uint8_t *data;
         };
+
+#pragma pack(push, 1)
+        struct _Struct
+        {
+            uint8_t frameType;
+            uint64_t senderAddress;
+            uint16_t reserved;
+            uint8_t sourceEndpoint;
+            uint8_t destinationEndpoint;
+            uint16_t clusterID;
+            uint16_t profileID;
+            uint8_t receiveOptions;
+        };
+#pragma pack(pop)
+#pragma pack(push, 1)
+        struct LinkTest
+        {
+            uint64_t destinationAddress;
+            uint16_t payloadSize;
+            uint16_t iterations;
+            uint16_t success;
+            uint16_t retries;
+            uint8_t result;
+            uint8_t RR;
+            uint8_t maxRssi;
+            uint8_t minRssi;
+            uint8_t avgRssi;
+        };
+#pragma pack(pop)
     }
 
 
@@ -358,8 +464,29 @@ namespace XBee
             DataPayloadTooLarge = 0x74,
             IndirectMessageUnrequested = 0x75
         };
-
     }
+
+    // TODO: Fill this in and use this kind of structure
+    struct ApiFrame
+    {
+        uint8_t startDelimiter;
+        uint16_t length;
+        uint8_t frameType;
+
+        union FrameData
+        {
+
+            TransmitRequest::Struct transmitRequestData;
+            ReceivePacket::Struct receivePacketData;
+            // Etc. etc.
+
+            union AtCommand
+            {
+                // All of the possible AtCommands (that we care about)
+            };
+        };
+        // Checksum is omitted here because some frames are variable length, so we don't actually know where the checksum is
+    };
 
     // --- For Convenience ---
     /*

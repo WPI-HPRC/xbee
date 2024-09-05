@@ -26,7 +26,10 @@ public:
 
     void sendFrame(uint8_t *frame, size_t size_bytes);
     void sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes);
+    void sendExplicitAddressingCommand(XBee::ExplicitAddressingCommand::Struct frameInfo, uint8_t *data, size_t dataSize_bytes);
     void sendNodeDiscoveryCommand();
+
+    void sendLinkTestRequest(uint64_t destinationAddress, uint16_t payloadSize, uint16_t iterations);
 
     void queueAtCommandLocal(uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes);
     void
@@ -68,6 +71,8 @@ private:
 
     virtual void remoteDeviceDiscovered(XBee::RemoteDevice *device);
 
+    virtual void handleLinkTest(XBee::ExplicitRxIndicator::LinkTest data){}
+
     virtual void handleReceivePacket(XBee::ReceivePacket::Struct *frame) = 0;
     virtual void handleReceivePacket64Bit(XBee::ReceivePacket64Bit::Struct *frame) = 0;
 
@@ -88,8 +93,7 @@ private:
     void handleNodeDiscoveryResponse(const uint8_t *frame, uint8_t length_bytes);
     void handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
-    uint8_t transmitRequestFrame[XBee::MaxFrameBytes]{};
-    uint8_t atCommandFrame[XBee::MaxFrameBytes]{};
+    uint8_t transmitFrame[XBee::MaxFrameBytes]{};
 
     uint8_t currentFrameID;
 
