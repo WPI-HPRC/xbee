@@ -29,6 +29,10 @@ namespace XBee
 
     const uint16_t LinkTestClusterID = 0x0094;
 
+    const uint16_t MaxEnergyDetectDuration = 0x3A98;
+
+    const uint8_t MaxNumberOfChannels = 101;
+
     struct RemoteDevice
     {
         uint64_t serialNumber;

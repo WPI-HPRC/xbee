@@ -160,6 +160,7 @@ void XBeeDevice::queueAtCommandLocal(uint16_t command, const uint8_t *commandDat
 void XBeeDevice::sendAtCommandLocal(uint8_t frameType, uint16_t command, const uint8_t *commandData,
                                     size_t commandDataSize_bytes)
 {
+    // NOTE: command data must be converted to Big Endian
     using namespace XBee::AtCommandTransmit;
 
     size_t index = 1;
@@ -299,43 +300,6 @@ void XBeeDevice::sendLinkTestRequest(uint64_t destinationAddress, uint16_t paylo
     frameInfo.transmitOptions = 0;
     ReverseBytes(&frameInfo.transmitOptions, sizeof(frameInfo.transmitOptions));
 
-
-//            destinationAddress,
-//            0xFFFE,
-//            0xE8,
-//            0xE6,
-//            0x0014,
-//            0xC105,
-//            0,
-//            0,
-//    };
-
-/*
- * using namespace XBee::ExplicitAddressingCommand;
-
-    uint16_t reserved = 0xFFFE;
-    uint8_t sourceEndpoint = 0xE8;
-    uint8_t destinationEndpoint = 0xE6;
-    uint16_t clusterID = 0x0014;
-    uint16_t profileID = 0xC105;
-    uint8_t broadcastRadius = 0;
-    uint8_t transmitOptions = 0;
-
-    using namespace XBee::ExplicitAddressingCommand;
-
-    size_t contentLength_bytes = sizeof(LinkTest) + PacketBytes;
-    size_t index = 1;
-
-    std::cout << "Length: " << contentLength_bytes << std::endl;
-
-    transmitFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
-    transmitFrame[index++] = contentLength_bytes & 0xFF;
-    transmitFrame[index++] = 0x11;
-    transmitFrame[index++] = 0x01;
-
-    loadAddressBigEndian(transmitFrame, destinationAddress, &index);
- */
-
     LinkTest linkTest = {
             .destinationAddress = 0x0013A200423F474C,
             .payloadSize = payloadSize,
@@ -345,8 +309,13 @@ void XBeeDevice::sendLinkTestRequest(uint64_t destinationAddress, uint16_t paylo
     ReverseBytes(&linkTest.payloadSize, sizeof(linkTest.payloadSize));
     ReverseBytes(&linkTest.iterations, sizeof(linkTest.iterations));
 
-
     sendExplicitAddressingCommand(frameInfo, (uint8_t *)&linkTest, sizeof(linkTest));
+}
+
+void XBeeDevice::sendEnergyDetectCommand(uint16_t msPerChannel)
+{
+//    ReverseBytes(&msPerChannel, sizeof(msPerChannel));
+    sendAtCommandLocal(XBee::AtCommand::EnergyDetect, nullptr, 0);
 }
 
 void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
@@ -503,6 +472,40 @@ void XBeeDevice::_handleAtCommandResponse(const uint8_t *frame, uint8_t length_b
     log("\n");
 }
 
+void XBeeDevice::handleEnergyDetectResponse(uint8_t *energyValues, uint8_t numChannels)
+{
+    log("Energy detect response:\n");
+    for(int i = 0; i < numChannels; i++)
+    {
+        log("\tChannel %d: %d\n", i, energyValues[i]);
+    }
+}
+
+void XBeeDevice::_handleEnergyDetectResponse(const uint8_t *frame, size_t length_bytes)
+{
+    uint8_t energyValues[XBee::MaxNumberOfChannels];
+    uint8_t channelNum = 0;
+
+    for(int i = XBee::AtCommandResponse::BytesBeforeCommandData; i < length_bytes; i++)
+    {
+        if(frame[i] == 0x0D)
+        {
+            // Carriage return, data is done
+            break;
+        }
+        else if (frame[i] == 0x2C)
+        {
+            // Comma separated
+            continue;
+        }
+        else
+        {
+            energyValues[channelNum++] = frame[i];
+        }
+    }
+    handleEnergyDetectResponse(energyValues, channelNum);
+}
+
 void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes)
 {
     using namespace XBee::AtCommandResponse;
@@ -542,7 +545,9 @@ void XBeeDevice::handleAtCommandResponse(const uint8_t *frame, uint8_t length_by
         case XBee::AtCommand::NodeDiscovery:
             handleNodeDiscoveryResponse(frame, length_bytes);
             return;
-
+        case XBee::AtCommand::EnergyDetect:
+            _handleEnergyDetectResponse(frame, length_bytes);
+            return;
         default:
             break;
     }

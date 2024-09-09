@@ -27,9 +27,10 @@ public:
     void sendFrame(uint8_t *frame, size_t size_bytes);
     void sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes);
     void sendExplicitAddressingCommand(XBee::ExplicitAddressingCommand::Struct frameInfo, uint8_t *data, size_t dataSize_bytes);
-    void sendNodeDiscoveryCommand();
 
+    void sendNodeDiscoveryCommand();
     void sendLinkTestRequest(uint64_t destinationAddress, uint16_t payloadSize, uint16_t iterations);
+    void sendEnergyDetectCommand(uint16_t msPerChannel);
 
     void queueAtCommandLocal(uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes);
     void
@@ -68,6 +69,8 @@ private:
 
     virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
     virtual void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
+    void _handleEnergyDetectResponse(const uint8_t *frame, size_t length_bytes);
+    virtual void handleEnergyDetectResponse(uint8_t energyValues[XBee::MaxNumberOfChannels], uint8_t numChannels);
 
     virtual void remoteDeviceDiscovered(XBee::RemoteDevice *device);
 
