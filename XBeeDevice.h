@@ -29,7 +29,7 @@ public:
     void sendExplicitAddressingCommand(XBee::ExplicitAddressingCommand::Struct frameInfo, uint8_t *data, size_t dataSize_bytes);
 
     void sendNodeDiscoveryCommand();
-    void sendLinkTestRequest(uint64_t destinationAddress, uint16_t payloadSize, uint16_t iterations);
+    virtual void sendLinkTestRequest(uint64_t destinationAddress, uint16_t payloadSize, uint16_t iterations);
     void sendEnergyDetectCommand(uint16_t msPerChannel);
 
     void queueAtCommandLocal(uint16_t command, const uint8_t *commandData, size_t commandDataSize_bytes);

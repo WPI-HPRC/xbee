@@ -269,8 +269,8 @@ void XBeeDevice::sendExplicitAddressingCommand(XBee::ExplicitAddressingCommand::
     transmitFrame[index++] = (contentLength_bytes >> 8) & 0xFF;
     transmitFrame[index++] = contentLength_bytes & 0xFF;
     transmitFrame[index++] = 0x11;
-    transmitFrame[index++] = 0x01;
-
+    currentFrameID = currentFrameID == 0 ? 1 : currentFrameID;
+    transmitFrame[index++] = currentFrameID++;
     memcpy(&transmitFrame[index], (uint8_t *)&frameInfo, sizeof(frameInfo));
     index += sizeof(frameInfo);
     memcpy(&transmitFrame[index], data, dataSize_bytes);
