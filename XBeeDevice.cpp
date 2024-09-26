@@ -866,7 +866,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
 void XBeeDevice::receive()
 {
-    if(serialInterface == UART)
+    if(serialInterface == SerialInterface::UART)
     {
         size_t numBytes = readBytes_uart(uartBuffer, UART_BUFFER_SIZE);
         for(int i = 0; i < numBytes; i++)
@@ -900,7 +900,7 @@ void XBeeDevice::receive()
             }
         }
     }
-    else if(serialInterface == SPI)
+    else if(serialInterface == SerialInterface::SPI)
     {
         /*
         readBytes(receiveFrame, 3);
