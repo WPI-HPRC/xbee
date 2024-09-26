@@ -10,7 +10,7 @@
 #include "XBeeUtility.h"
 #include "circularQueue.hpp"
 
-enum SerialInterface
+enum class SerialInterface
 {
     UART,
     SPI
@@ -64,7 +64,7 @@ public:
 
 private:
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
-    virtual size_t readBytes_uart(char *buffer, size_t max_bytes) = 0;
+    virtual size_t readBytes_uart(char *buffer, size_t max_bytes);
     virtual void readBytes_spi(uint8_t *buffer, size_t length_bytes);
 
     virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
