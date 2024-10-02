@@ -25,6 +25,7 @@ public:
     virtual void log(const char *format, ...) = 0;
 
     void sendFrame(uint8_t *frame, size_t size_bytes);
+    void sendTransmitRequestCommand(uint64_t address, uint8_t transmitOptions, uint8_t broadcastRadius, const uint8_t *data, size_t size_bytes);
     void sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes);
     void sendExplicitAddressingCommand(XBee::ExplicitAddressingCommand::Struct frameInfo, uint8_t *data, size_t dataSize_bytes);
 
@@ -80,7 +81,8 @@ private:
     virtual void handleReceivePacket64Bit(XBee::ReceivePacket64Bit::Struct *frame) = 0;
 
     virtual void _handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
-    virtual void handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
+    virtual void _handleTransmitStatus(uint8_t frameID, uint8_t statusCode){}
+    void handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes);
 
     virtual void incorrectChecksum(uint8_t calculated, uint8_t received) = 0;
     virtual void didCycle();

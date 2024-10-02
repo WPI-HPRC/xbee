@@ -234,6 +234,11 @@ void XBeeDevice::sendNodeDiscoveryCommand()
 
 void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes)
 {
+    sendTransmitRequestCommand(address, 0x00, 0x00, data, size_bytes);
+}
+
+void XBeeDevice::sendTransmitRequestCommand(uint64_t address, uint8_t transmitOptions, uint8_t broadcastRadius, const uint8_t *data, size_t size_bytes)
+{
     using namespace XBee::TransmitRequest;
 
     size_t contentLength_bytes = size_bytes + PacketBytes;
@@ -251,8 +256,8 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
     transmitFrame[index++] = 0xFF; // Reserved
     transmitFrame[index++] = 0xFE; // Reserved
 
-    transmitFrame[index++] = 0x00; // Broadcast radius
-    transmitFrame[index++] = 0xC1; // Transmit options
+    transmitFrame[index++] = broadcastRadius; // Broadcast radius
+    transmitFrame[index++] = transmitOptions; // Transmit options
 
     memcpy(&transmitFrame[index], data, size_bytes);
     sendFrame(transmitFrame, size_bytes + FrameBytes);
@@ -723,6 +728,7 @@ void XBeeDevice::handleTransmitStatus(const uint8_t *frame, uint8_t length_bytes
         }
         log("\n");
     }
+    _handleTransmitStatus(frameID, statusCode);
 }
 
 void XBeeDevice::_handleExtendedTransmitStatus(const uint8_t *frame, uint8_t length_bytes)
