@@ -122,7 +122,10 @@ namespace XBee
             MacAckFailureCount = AsciiToUint16('E', 'A'),
             TransmissionFailureCount = AsciiToUint16('T', 'R'),
             ApiOptions = AsciiToUint16('A', 'O'),
-            InterfaceDataRate = AsciiToUint16('B', 'D')
+            InterfaceDataRate = AsciiToUint16('B', 'D'),
+            InterfaceParity = AsciiToUint16('N', 'B'),
+            InterfaceStopBits = AsciiToUint16('S', 'B'),
+            ApiMode = AsciiToUint16('A', 'P')
         };
         enum CommandStatus
         {
