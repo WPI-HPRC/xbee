@@ -68,6 +68,8 @@ private:
     virtual size_t readBytes_uart(char *buffer, size_t max_bytes);
     virtual void readBytes_spi(uint8_t *buffer, size_t length_bytes);
 
+    virtual void handlingFrame(const uint8_t *frame){}
+
     virtual void _handleRemoteAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
     virtual void _handleAtCommandResponse(const uint8_t *frame, uint8_t length_bytes);
     void _handleEnergyDetectResponse(const uint8_t *frame, size_t length_bytes);

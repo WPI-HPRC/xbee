@@ -813,6 +813,8 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
     uint8_t lengthLow = frame[index++];
     uint8_t lengthHigh = frame[index++];
 
+    handlingFrame(frame);
+
     uint8_t calculatedChecksum = calcChecksum(frame, lengthHigh);
     uint8_t receivedChecksum = frame[lengthHigh + XBee::FrameBytes - 1];
 
