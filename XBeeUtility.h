@@ -125,7 +125,17 @@ namespace XBee
             InterfaceDataRate = AsciiToUint16('B', 'D'),
             InterfaceParity = AsciiToUint16('N', 'B'),
             InterfaceStopBits = AsciiToUint16('S', 'B'),
-            ApiMode = AsciiToUint16('A', 'P')
+            ApiMode = AsciiToUint16('A', 'P'),
+            MessagingMode = AsciiToUint16('C', 'E'),
+            NetworkID = AsciiToUint16('I', 'D'),
+            PreambleID = AsciiToUint16('H', 'P'),
+            ClusterID = AsciiToUint16('C', 'I'),
+            TransmitOptions = AsciiToUint16('T', 'O'),
+            UnicastRetries = AsciiToUint16('R', 'R'),
+            MeshUnicastRetries = AsciiToUint16('M', 'R'),
+            NetworkHops = AsciiToUint16('N', 'H'),
+            BroadcastHops = AsciiToUint16('B', 'H'),
+            BroadcastMultiTransmits = AsciiToUint16('M', 'T'),
         };
         enum CommandStatus
         {
