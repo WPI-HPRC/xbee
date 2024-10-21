@@ -20,6 +20,7 @@ class XBeeDevice
 {
 public:
     explicit XBeeDevice(SerialInterface serialInterface);
+    static void reverseBytes(void *start, int size);
 
     virtual void start();
     virtual void log(const char *format, ...) = 0;
@@ -141,7 +142,6 @@ protected:
 
     static uint16_t getAtCommand(const uint8_t *frame);
     static uint16_t getRemoteAtCommand(const uint8_t *frame);
-
 };
 
 

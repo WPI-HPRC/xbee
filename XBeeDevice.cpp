@@ -9,7 +9,8 @@
 #include <iomanip>
 
 #include <algorithm>
-void ReverseBytes( void *start, int size )
+
+void XBeeDevice::reverseBytes( void *start, int size )
 {
     char *istart = static_cast<char *>(start), *iend = istart + size;
     std::reverse(istart, iend);
@@ -289,37 +290,36 @@ void XBeeDevice::sendLinkTestRequest(uint64_t destinationAddress, uint16_t paylo
 
     Struct frameInfo;
     frameInfo.destinationAddress = 0x0013A200422CDAC2;
-    ReverseBytes(&frameInfo.destinationAddress, sizeof(frameInfo.destinationAddress));
+    reverseBytes(&frameInfo.destinationAddress, sizeof(frameInfo.destinationAddress));
     frameInfo.reserved = 0xFFFE;
-    ReverseBytes(&frameInfo.reserved, sizeof(frameInfo.reserved));
+    reverseBytes(&frameInfo.reserved, sizeof(frameInfo.reserved));
     frameInfo.sourceEndpoint = 0xE6;
-    ReverseBytes(&frameInfo.sourceEndpoint, sizeof(frameInfo.sourceEndpoint));
+    reverseBytes(&frameInfo.sourceEndpoint, sizeof(frameInfo.sourceEndpoint));
     frameInfo.destinationEndpoint = 0xE6;
-    ReverseBytes(&frameInfo.destinationEndpoint, sizeof(frameInfo.destinationEndpoint));
+    reverseBytes(&frameInfo.destinationEndpoint, sizeof(frameInfo.destinationEndpoint));
     frameInfo.clusterID = 0x0014;
-    ReverseBytes(&frameInfo.clusterID, sizeof(frameInfo.clusterID));
+    reverseBytes(&frameInfo.clusterID, sizeof(frameInfo.clusterID));
     frameInfo.profileID = 0xC105;
-    ReverseBytes(&frameInfo.profileID, sizeof(frameInfo.profileID));
+    reverseBytes(&frameInfo.profileID, sizeof(frameInfo.profileID));
     frameInfo.broadcastRadius = 0;
-    ReverseBytes(&frameInfo.broadcastRadius, sizeof(frameInfo.broadcastRadius));
+    reverseBytes(&frameInfo.broadcastRadius, sizeof(frameInfo.broadcastRadius));
     frameInfo.transmitOptions = 0;
-    ReverseBytes(&frameInfo.transmitOptions, sizeof(frameInfo.transmitOptions));
+    reverseBytes(&frameInfo.transmitOptions, sizeof(frameInfo.transmitOptions));
 
     LinkTest linkTest = {
             .destinationAddress = 0x0013A200423F474C,
             .payloadSize = payloadSize,
             .iterations = iterations
     };
-    ReverseBytes(&linkTest.destinationAddress, sizeof(linkTest.destinationAddress));
-    ReverseBytes(&linkTest.payloadSize, sizeof(linkTest.payloadSize));
-    ReverseBytes(&linkTest.iterations, sizeof(linkTest.iterations));
+    reverseBytes(&linkTest.destinationAddress, sizeof(linkTest.destinationAddress));
+    reverseBytes(&linkTest.payloadSize, sizeof(linkTest.payloadSize));
+    reverseBytes(&linkTest.iterations, sizeof(linkTest.iterations));
 
     sendExplicitAddressingCommand(frameInfo, (uint8_t *)&linkTest, sizeof(linkTest));
 }
 
 void XBeeDevice::sendEnergyDetectCommand(uint16_t msPerChannel)
 {
-//    ReverseBytes(&msPerChannel, sizeof(msPerChannel));
     sendAtCommandLocal(XBee::AtCommand::EnergyDetect, nullptr, 0);
 }
 
@@ -366,17 +366,17 @@ void XBeeDevice::parseExplicitReceivePacket(const uint8_t *frame, uint8_t length
     using namespace XBee::ExplicitRxIndicator;
 
     auto *frameStruct = (_Struct *)&frame[3];
-    ReverseBytes(&frameStruct->clusterID, sizeof(frameStruct->clusterID));
+    reverseBytes(&frameStruct->clusterID, sizeof(frameStruct->clusterID));
 
     if(frameStruct->clusterID == XBee::LinkTestClusterID)
     {
         auto *data = (LinkTest *)(&frame[21]);
 
-        ReverseBytes(&data->destinationAddress, sizeof(data->destinationAddress));
-        ReverseBytes(&data->success, sizeof(data->success));
-        ReverseBytes(&data->iterations, sizeof(data->iterations));
-        ReverseBytes(&data->payloadSize, sizeof(data->payloadSize));
-        ReverseBytes(&data->retries, sizeof(data->retries));
+        reverseBytes(&data->destinationAddress, sizeof(data->destinationAddress));
+        reverseBytes(&data->success, sizeof(data->success));
+        reverseBytes(&data->iterations, sizeof(data->iterations));
+        reverseBytes(&data->payloadSize, sizeof(data->payloadSize));
+        reverseBytes(&data->retries, sizeof(data->retries));
         handleLinkTest(*data);
         return;
     }
