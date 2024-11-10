@@ -831,6 +831,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
     uint8_t frameType = frame[index++];
 
+    recordThroughput = true;
     switch (frameType)
     {
         using namespace XBee::FrameType;
@@ -848,7 +849,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
         case AtCommandResponse:
             waitingOnAtCommandResponse = false;
-            dontRecordThroughput = true;
+            recordThroughput = false;
             handleAtCommandResponse(frame, lengthHigh);
             break;
 
@@ -858,13 +859,13 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
         case TransmitStatus:
             handleTransmitStatus(frame, lengthHigh);
-            dontRecordThroughput = true;
+            recordThroughput = false;
             waitingOnTransmitStatus = false;
             break;
 
         case ExtendedTransmitStatus:
             waitingOnTransmitStatus = false;
-            dontRecordThroughput = true;
+            recordThroughput = false;
             handleExtendedTransmitStatus(frame, lengthHigh);
             break;
 
