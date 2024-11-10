@@ -136,6 +136,8 @@ namespace XBee
             NetworkHops = AsciiToUint16('N', 'H'),
             BroadcastHops = AsciiToUint16('B', 'H'),
             BroadcastMultiTransmits = AsciiToUint16('M', 'T'),
+            ErrorCount = AsciiToUint16('E','R'),
+            LastPacketRSSI = AsciiToUint16('D', 'B')
         };
         enum CommandStatus
         {
