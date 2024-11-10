@@ -67,6 +67,8 @@ public:
     bool sendNextFrameImmediately = false;
     bool dontWaitOnNextFrame = false;
 
+    bool dontRecordThroughput = false;
+
 private:
     virtual void writeBytes(const char *data, size_t length_bytes) = 0;
     virtual size_t readBytes_uart(char *buffer, size_t max_bytes);

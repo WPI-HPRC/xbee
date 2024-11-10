@@ -848,6 +848,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
         case AtCommandResponse:
             waitingOnAtCommandResponse = false;
+            dontRecordThroughput = true;
             handleAtCommandResponse(frame, lengthHigh);
             break;
 
@@ -857,11 +858,13 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
         case TransmitStatus:
             handleTransmitStatus(frame, lengthHigh);
+            dontRecordThroughput = true;
             waitingOnTransmitStatus = false;
             break;
 
         case ExtendedTransmitStatus:
             waitingOnTransmitStatus = false;
+            dontRecordThroughput = true;
             handleExtendedTransmitStatus(frame, lengthHigh);
             break;
 
