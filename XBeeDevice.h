@@ -6,6 +6,7 @@
 #define HPRC_XBEEDEVICE_H
 
 #define UART_BUFFER_SIZE 2048
+#define SPI_BUFFER_SIZE 512 // should be more than enough - max bytes is ~260 but can change based on packet type
 
 #include "XBeeUtility.h"
 #include "circularQueue.hpp"
@@ -54,6 +55,7 @@ public:
     void applyChanges();
     void writeChanges();
 
+    void receiveKnownBytes(const uint8_t *bytes, size_t numBytes);
     void receive();
 
     void doCycle();
@@ -70,7 +72,10 @@ public:
     bool recordThroughput = true;
 
 private:
-    virtual void writeBytes(const char *data, size_t length_bytes) = 0;
+    void writeBytes(char *data, size_t length_bytes);
+    virtual void writeBytes_uart(const char *data, size_t length_bytes){}
+    virtual void writeBytes_spi(char *data_io, size_t length_bytes){}
+
     virtual size_t readBytes_uart(char *buffer, size_t max_bytes);
     virtual void readBytes_spi(uint8_t *buffer, size_t length_bytes);
 
@@ -96,6 +101,8 @@ private:
     virtual void didCycle();
     virtual void sentFrame(uint8_t frameID);
 
+    virtual bool canReadSPI(){return false;}
+
     void parseReceivePacket(const uint8_t *frame, uint8_t length);
     void parseReceivePacket64Bit(const uint8_t *frame, uint8_t length_bytes);
     void parseExplicitReceivePacket(const uint8_t *frame, uint8_t length_bytes);
@@ -116,8 +123,6 @@ private:
 
     bool waitingOnAtCommandResponse = false;
     bool waitingOnTransmitStatus = false;
-
-
 
     XBee::ReceivePacket::Struct *receivePacketStruct = new XBee::ReceivePacket::Struct;
     XBee::ReceivePacket64Bit::Struct *receivePacket64BitStruct = new XBee::ReceivePacket64Bit::Struct;

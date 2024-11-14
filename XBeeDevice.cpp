@@ -333,7 +333,7 @@ void XBeeDevice::sendFrame(uint8_t *frame, size_t size_bytes)
         (getFrameType(frame) == XBee::FrameType::TransmitRequest && sendTransmitRequestsImmediately))
     {
         sendNextFrameImmediately = false;
-        writeBytes((const char *) frame, size_bytes);
+        writeBytes((char *) frame, size_bytes);
     }
     else
     {
@@ -876,14 +876,11 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
     return true;
 }
 
-void XBeeDevice::receive()
+void XBeeDevice::receiveKnownBytes(const uint8_t *bytes, size_t numBytes)
 {
-    if(serialInterface == SerialInterface::UART)
-    {
-        size_t numBytes = readBytes_uart(uartBuffer, UART_BUFFER_SIZE);
-        for(int i = 0; i < numBytes; i++)
+    for(int i = 0; i < numBytes; i++)
         {
-            uint8_t next_byte = uartBuffer[i];
+            uint8_t next_byte = bytes[i];
             if(receiveFrameBytesLeftToRead > 0)
             {
                 receiveFrame[receiveFrameIndex++] = next_byte;
@@ -898,9 +895,7 @@ void XBeeDevice::receive()
                 if(receiveFrameBytesLeftToRead == 0)
                 {
                     handleFrame(receiveFrame);
-
-                    // Set the first byte to zero so we know the packet has been read
-                    receiveFrame[0] = 0;
+                    receiveFrameIndex = 0;
                 }
             }
             else if(next_byte == XBee::StartDelimiter)
@@ -911,21 +906,39 @@ void XBeeDevice::receive()
                 receiveFrameBytesLeftToRead = 3;
             }
         }
-    }
-    else if(serialInterface == SerialInterface::SPI)
+}
+
+void XBeeDevice::receive()
+{
+    if(serialInterface == SerialInterface::UART)
     {
-        /*
-        readBytes(receiveFrame, 3);
-        uint8_t length = receiveFrame[2];
+        size_t numBytes = readBytes_uart(uartBuffer, UART_BUFFER_SIZE);
+        receiveKnownBytes((const uint8_t *)uartBuffer, numBytes);
+    }
+    else if(serialInterface == SerialInterface::SPI && canReadSPI)
+    {
+        if(receiveFrameBytesLeftToRead > 0)
+        {
+            // If there is data available, it should be guaranteed to be a full packet - we can just read the number of bytes left
+            readBytes_spi(&receiveFrame[receiveFrameIndex], receiveFrameBytesLeftToRead);
+            handleFrame(receiveFrame);
 
-        // Read the rest of the frame. The length represents the number of bytes between the length and the checksum.
-        // The second of the two length bytes holds the real length of the frame.
-        readBytes(&receiveFrame[3], length + 1);
+            receiveFrameIndex = 0;
+        }
+        else
+        {
+            readBytes_spi(receiveFrame, 3);
+            receiveFrameIndex = 3;
 
-        // Set the first byte to zero so we know the packet has been read
-        handleFrame(receiveFrame);
-        receiveFrame[0] = 0;
-         */
+            // We need to read the number of bytes denoted by the length byte, plus 1 for the checksum
+            size_t length = receiveFrame[2] + 1;
+            readBytes_spi(&receiveFrame[receiveFrameIndex], length);
+
+            // If there's data to be read, we know it's a full packet due to how the ATTN pin works
+            handleFrame(receiveFrame);
+
+            receiveFrameIndex = 0;
+        }
     }
 }
 
@@ -957,9 +970,22 @@ void XBeeDevice::doCycle()
                 waitingOnAtCommandResponse = true;
             }
         }
-        writeBytes((const char *) tempFrame.frame, tempFrame.length_bytes);
+        writeBytes((char *) tempFrame.frame, tempFrame.length_bytes);
     }
     didCycle();
+}
+
+void XBeeDevice::writeBytes(char *data, size_t length_bytes)
+{
+    if(serialInterface == SerialInterface::UART)
+    {
+        writeBytes_uart(data, length_bytes);
+    }
+    else if(serialInterface == SerialInterface::SPI)
+    {
+        writeBytes_spi(data, length_bytes);
+        receiveKnownBytes((const uint8_t *)data, length_bytes);
+    }
 }
 
 void XBeeDevice::sentFrame(uint8_t frameID)
@@ -980,7 +1006,7 @@ size_t XBeeDevice::readBytes_uart(char *buffer, size_t max_bytes)
 
 void XBeeDevice::readBytes_spi(uint8_t *buffer, size_t length_bytes)
 {
-
+    
 }
 void XBeeDevice::start()
 {
