@@ -915,7 +915,7 @@ void XBeeDevice::receive()
         size_t numBytes = readBytes_uart(uartBuffer, UART_BUFFER_SIZE);
         receiveKnownBytes((const uint8_t *)uartBuffer, numBytes);
     }
-    else if(serialInterface == SerialInterface::SPI && canReadSPI)
+    else if(serialInterface == SerialInterface::SPI && canReadSPI())
     {
         if(receiveFrameBytesLeftToRead > 0)
         {
