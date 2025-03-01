@@ -132,7 +132,6 @@ private:
     uint8_t receiveFrameIndex = 0;
     int receiveFrameBytesLeftToRead = 0;
 
-    SerialInterface serialInterface;
 
     char nodeID[20]{};
 
@@ -151,6 +150,8 @@ protected:
 
     static uint16_t getAtCommand(const uint8_t *frame);
     static uint16_t getRemoteAtCommand(const uint8_t *frame);
+
+    SerialInterface serialInterface;
 };
 
 

@@ -250,7 +250,8 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, uint8_t transmitOp
 
     transmitFrame[index++] = 0x10; // Transmit Request
     currentFrameID = currentFrameID == 0 ? 1 : currentFrameID;
-    transmitFrame[index++] = currentFrameID++; // Frame ID
+    // transmitFrame[index++] = currentFrameID++; // Frame ID
+    transmitFrame[index++] = 0; // Frame ID
 
     loadAddressBigEndian(transmitFrame, address, &index);
 
@@ -813,8 +814,6 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
     uint8_t lengthLow = frame[index++];
     uint8_t lengthHigh = frame[index++];
 
-    handlingFrame(frame);
-
     uint8_t calculatedChecksum = calcChecksum(frame, lengthHigh);
     uint8_t receivedChecksum = frame[lengthHigh + XBee::FrameBytes - 1];
 
@@ -830,6 +829,8 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
     }
 
     uint8_t frameType = frame[index++];
+
+    handlingFrame(frame);
 
     recordThroughput = true;
     switch (frameType)
@@ -878,7 +879,7 @@ bool XBeeDevice::handleFrame(const uint8_t *frame)
 
 void XBeeDevice::receiveKnownBytes(const uint8_t *bytes, size_t numBytes)
 {
-    for(int i = 0; i < numBytes; i++)
+    for(size_t i = 0; i < numBytes; i++)
         {
             uint8_t next_byte = bytes[i];
             if(receiveFrameBytesLeftToRead > 0)
@@ -917,28 +918,32 @@ void XBeeDevice::receive()
     }
     else if(serialInterface == SerialInterface::SPI && canReadSPI())
     {
-        if(receiveFrameBytesLeftToRead > 0)
+        do
         {
-            // If there is data available, it should be guaranteed to be a full packet - we can just read the number of bytes left
-            readBytes_spi(&receiveFrame[receiveFrameIndex], receiveFrameBytesLeftToRead);
-            handleFrame(receiveFrame);
+            if(receiveFrameBytesLeftToRead > 0)
+            {
+                // If there is data available, it should be guaranteed to be a full packet - we can just read the number of bytes left
+                readBytes_spi(&receiveFrame[receiveFrameIndex], receiveFrameBytesLeftToRead);
+                handleFrame(receiveFrame);
 
-            receiveFrameIndex = 0;
-        }
-        else
-        {
-            readBytes_spi(receiveFrame, 3);
-            receiveFrameIndex = 3;
+                receiveFrameIndex = 0;
+            }
+            else
+            {
+                readBytes_spi(receiveFrame, 3);
+                receiveFrameIndex = 3;
 
-            // We need to read the number of bytes denoted by the length byte, plus 1 for the checksum
-            size_t length = receiveFrame[2] + 1;
-            readBytes_spi(&receiveFrame[receiveFrameIndex], length);
+                // We need to read the number of bytes denoted by the length byte, plus 1 for the checksum
+                size_t length = receiveFrame[2] + 1;
 
-            // If there's data to be read, we know it's a full packet due to how the ATTN pin works
-            handleFrame(receiveFrame);
+                readBytes_spi(&receiveFrame[receiveFrameIndex], length);
 
-            receiveFrameIndex = 0;
-        }
+                // If there's data to be read, we know it's a full packet due to how the ATTN pin works
+                handleFrame(receiveFrame);
+
+                receiveFrameIndex = 0;
+            }
+        } while(canReadSPI());
     }
 }
 
@@ -948,7 +953,7 @@ void XBeeDevice::doCycle()
     receive();
 
     // Next, send out any frames that need to be sent
-
+    return;
     while (true)
     {
         if (waitingOnAtCommandResponse ||
