@@ -240,6 +240,11 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, const uint8_t *dat
 
 void XBeeDevice::sendTransmitRequestCommand(uint64_t address, uint8_t transmitOptions, uint8_t broadcastRadius, const uint8_t *data, size_t size_bytes)
 {
+    sendTransmitRequestCommand(address, true, transmitOptions, broadcastRadius, data, size_bytes);
+}
+
+void XBeeDevice::sendTransmitRequestCommand(uint64_t address, bool useFrameID, uint8_t transmitOptions, uint8_t broadcastRadius, const uint8_t *data, size_t size_bytes)
+{
     using namespace XBee::TransmitRequest;
 
     size_t contentLength_bytes = size_bytes + PacketBytes;
@@ -249,9 +254,15 @@ void XBeeDevice::sendTransmitRequestCommand(uint64_t address, uint8_t transmitOp
     transmitFrame[index++] = contentLength_bytes & 0xFF;
 
     transmitFrame[index++] = 0x10; // Transmit Request
-    currentFrameID = currentFrameID == 0 ? 1 : currentFrameID;
-    // transmitFrame[index++] = currentFrameID++; // Frame ID
-    transmitFrame[index++] = 0; // Frame ID
+    if (useFrameID)
+    {
+        currentFrameID = currentFrameID == 0 ? 1 : currentFrameID;
+        transmitFrame[index++] = currentFrameID; // Frame ID
+    }
+    else
+    {
+        transmitFrame[index++] = 0; // Frame ID
+    }
 
     loadAddressBigEndian(transmitFrame, address, &index);
 

@@ -27,6 +27,7 @@ public:
     virtual void log(const char *format, ...) = 0;
 
     void sendFrame(uint8_t *frame, size_t size_bytes);
+    void sendTransmitRequestCommand(uint64_t address, bool useFrameID, uint8_t transmitOptions, uint8_t broadcastRadius, const uint8_t *data, size_t size_bytes);
     void sendTransmitRequestCommand(uint64_t address, uint8_t transmitOptions, uint8_t broadcastRadius, const uint8_t *data, size_t size_bytes);
     void sendTransmitRequestCommand(uint64_t address, const uint8_t *data, size_t size_bytes);
     void sendExplicitAddressingCommand(XBee::ExplicitAddressingCommand::Struct frameInfo, uint8_t *data, size_t dataSize_bytes);
